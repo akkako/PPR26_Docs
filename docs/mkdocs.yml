@@ -1,0 +1,82 @@
+site_name: PPR26 文档中心
+site_url: https://akkako.github.io/PPR26/
+repo_url: https://github.com/akkako/PPR26
+repo_name: GitHub
+
+theme:
+  name: material
+  language: zh
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 切换至深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 切换至浅色模式
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+plugins:
+  - search
+  - exporter:
+      formats:
+        pdf:
+          enabled: !ENV [MKDOCS_EXPORTER_PDF, false]
+          concurrency: 4
+          aggregator:
+            enabled: !ENV [MKDOCS_EXPORTER_PDF, false]
+            output: PPR26_manual.pdf
+
+extra:
+  social:
+    - icon: fontawesome/brands/github-square
+      link: https://github.com/akkako/PPR26
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - tables
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+
+nav:
+  - 首页: 
+    - index.md
+    - datasheet/specification.md
+    - quickstart/quickstart.md
+    - reference/reference.md
+  - 设备规格: 
+    - datasheet/specification.md
+  - 使用说明: 
+    - quickstart/quickstart.md
+    - quickstart/fwupgrade.md
+    - quickstart/modeswitch.md
+  - 参考文档: 
+    - reference/reference.md
+    - reference/reference_at.md
+    - reference/reference_scpi.md
+    - reference/python_at.md
+    - reference/python_scpi.md
+  - 上位机指南:
+    - software/getstarted.md
