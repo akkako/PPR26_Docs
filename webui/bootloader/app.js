@@ -1,14 +1,19 @@
 /**
- * PPR26 HID Bootloader WebUI
+ * PPR26 WinUSB Bootloader WebUI
  *
- * Implements the protocol defined in Bootloader_Protocol.md using WebHID.
  */
 
 const VID = 0xFFFE;
 const PID = 0xFFFF;
 const MAGIC_NUMBER = 0x0D000721;
 const PROGRAM_DATA_MAX_LEN = 61;
-const REPORT_SIZE = 64;
+const PACKET_SIZE = 64;
+
+/*!< xboot app region layout (see xboot.h) */
+const APP_HEADER_SIZE = 512;          // XBOOT_APP_HEADER_SIZE
+const APP_FLASH_SIZE = 42 * 1024;     // XBOOT_APP_FLASH_SIZE (header + payload)
+const PACKET_REQ_ID = 0x01;
+const PACKET_RSP_ID = 0x02;
 
 const CMD_PING = 0x00;
 const CMD_GET_VENDOR_NAME = 0x01;
@@ -50,6 +55,7 @@ const I18N = {
         file_not_selected: "未选择文件",
         status_disconnected: "未连接",
         status_connected: "已连接",
+        upgrade_hint: "请选择待升级固件",
 
         // INFO_COMMANDS labels
         info_vendor: "供应商",
@@ -64,13 +70,20 @@ const I18N = {
         info_page_buffer_size: "页缓冲区大小",
 
         // Error messages
-        err_no_webhid: "当前浏览器不支持 WebHID，请使用 Chrome/Edge 109+",
+        err_no_webusb: "当前浏览器不支持 WebUSB，请使用 Chrome/Edge 109+",
         err_no_device_selected: "未选择设备",
+        err_no_device_found: "未找到匹配的 USB 设备",
         err_not_connected: "设备未连接",
+        err_open_failed: "打开设备失败: ",
+        err_claim_failed: "占用设备接口失败，请关闭其他占用程序后重试: ",
         err_response_timeout: "设备响应超时",
+        err_response_invalid: "设备响应数据无效",
         err_ping_response: "Ping 响应命令错误",
         err_magic_mismatch: "Magic 不匹配: ",
         err_packet_too_large: "数据包过大: ",
+        err_cmd_mismatch: "响应命令不匹配: ",
+        err_file_too_small: "固件文件过小: ",
+        err_file_too_large: "固件文件过大: ",
 
         // Log messages
         log_connected: "设备已连接并响应 Ping",
@@ -90,7 +103,9 @@ const I18N = {
         log_app_verify_success: "校验成功，正在跳转应用...",
         log_exit_dfu_failed: "退出DFU失败: ",
         log_device_disconnected: "设备已断开",
-        log_initialized: "WebHID 上位机已加载",
+        log_initialized: "WebUSB 上位机已加载",
+        log_api_ok: "WebUSB 接口可用（navigator.usb），设备过滤 0xFFFE:0xFFFF",
+        log_api_missing: "未检测到 navigator.usb，请改用 Chrome/Edge 并通过 http://localhost 或 https 打开",
     },
     en: {
         // HTML static text
@@ -109,6 +124,7 @@ const I18N = {
         file_not_selected: "No file selected",
         status_disconnected: "Disconnected",
         status_connected: "Connected",
+        upgrade_hint: "Select the upgrade firmware",
 
         // INFO_COMMANDS labels
         info_vendor: "Vendor",
@@ -123,13 +139,20 @@ const I18N = {
         info_page_buffer_size: "Page Buffer Size",
 
         // Error messages
-        err_no_webhid: "WebHID is not supported in your browser. Please use Chrome/Edge 109+",
+        err_no_webusb: "WebUSB is not supported in your browser. Please use Chrome/Edge 109+",
         err_no_device_selected: "No device selected",
+        err_no_device_found: "No matching USB device found",
         err_not_connected: "Device not connected",
+        err_open_failed: "Failed to open device: ",
+        err_claim_failed: "Failed to claim interface, close other programs using it and retry: ",
         err_response_timeout: "Device response timeout",
+        err_response_invalid: "Invalid device response",
         err_ping_response: "Ping response command error",
         err_magic_mismatch: "Magic mismatch: ",
         err_packet_too_large: "Packet too large: ",
+        err_cmd_mismatch: "Unexpected response command: ",
+        err_file_too_small: "Firmware file too small: ",
+        err_file_too_large: "Firmware file too large: ",
 
         // Log messages
         log_connected: "Device connected and responding to Ping",
@@ -149,7 +172,9 @@ const I18N = {
         log_app_verify_success: "Verification successful, jumping to application...",
         log_exit_dfu_failed: "Exit DFU failed: ",
         log_device_disconnected: "Device disconnected",
-        log_initialized: "WebHID Bootloader loaded",
+        log_initialized: "WebUSB Bootloader loaded",
+        log_api_ok: "WebUSB available (navigator.usb), filtering 0xFFFE:0xFFFF",
+        log_api_missing: "navigator.usb is unavailable; use Chrome/Edge over http://localhost or https",
     }
 };
 
@@ -197,10 +222,11 @@ const INFO_COMMANDS = [
     { cmd: CMD_GET_PROGRAM_INFO, label: "info_page_buffer_size" },
 ];
 
-class HidBootloader {
+class WinUsbBootloader {
     constructor() {
         this.device = null;
-        this.pending = null;
+        this.inEp = null;
+        this.outEp = null;
     }
 
     isConnected() {
@@ -208,44 +234,72 @@ class HidBootloader {
     }
 
     async open() {
-        if (!navigator.hid) {
-            throw new Error(t("err_no_webhid"));
+        if (!navigator.usb) {
+            throw new Error(t("err_no_webusb"));
         }
 
-        const devices = await navigator.hid.requestDevice({
-            filters: [{ vendorId: VID, productId: PID }]
-        });
+        let device;
+        try {
+            device = await navigator.usb.requestDevice({
+                filters: [{ vendorId: VID, productId: PID }]
+            });
+        } catch (e) {
+            // Chrome rejects requestDevice() with NotFoundError when the user
+            // cancels the chooser or when no connected device matches VID/PID.
+            if (e && e.name === "NotFoundError") {
+                throw new Error(t("err_no_device_found"));
+            }
+            throw e;
+        }
 
-        if (devices.length === 0) {
+        if (!device) {
             throw new Error(t("err_no_device_selected"));
         }
 
-        this.device = devices[0];
-        this.device.oninputreport = (e) => this._onInputReport(e);
+        this.device = device;
 
-        if (!this.device.opened) {
-            await this.device.open();
+        try {
+            if (!device.opened) {
+                await device.open();
+            }
+            if (device.configuration === null) {
+                await device.selectConfiguration(1);
+            }
+            await device.claimInterface(0);
+        } catch (e) {
+            throw new Error(t("err_claim_failed") + e.message);
         }
+
+        const alt = device.configuration.interfaces[0].alternates[0];
+        const epOut = alt.endpoints.find(ep => ep.direction === "out");
+        const epIn = alt.endpoints.find(ep => ep.direction === "in");
+        if (!epOut || !epIn) {
+            throw new Error(t("err_open_failed") + "endpoints not found");
+        }
+        this.outEp = epOut.endpointNumber;
+        this.inEp = epIn.endpointNumber;
     }
 
-    close() {
+    async close() {
         if (this.device) {
-            this.device.close();
+            const dev = this.device;
             this.device = null;
+            this.inEp = null;
+            this.outEp = null;
+            try {
+                await dev.close();
+            } catch (e) {
+                /* device already gone */
+            }
         }
     }
 
-    _onInputReport(e) {
-        if (e.reportId !== 0x02) return;
-
-        const data = new Uint8Array(e.data.buffer, e.data.byteOffset, e.data.byteLength);
-
-        if (this.pending) {
-            const { resolve, timer } = this.pending;
-            this.pending = null;
-            clearTimeout(timer);
-            resolve(data);
-        }
+    _withTimeout(promise, timeoutMs) {
+        let timer;
+        const timeout = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(t("err_response_timeout"))), timeoutMs);
+        });
+        return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
     }
 
     async _transaction(cmd, payload = new Uint8Array(0), timeoutMs = 5000) {
@@ -253,45 +307,45 @@ class HidBootloader {
             throw new Error(t("err_not_connected"));
         }
 
-        const report = new Uint8Array(REPORT_SIZE - 1); // without report id
-        report[0] = 1 + payload.length;
-        report[1] = cmd;
-        report.set(payload, 2);
+        const packet = new Uint8Array(PACKET_SIZE);
+        packet[0] = PACKET_REQ_ID;
+        packet[1] = 1 + payload.length;
+        packet[2] = cmd;
+        packet.set(payload, 3);
 
-        const responsePromise = new Promise((resolve, reject) => {
-            const timer = setTimeout(() => {
-                this.pending = null;
-                reject(new Error(t("err_response_timeout")));
-            }, timeoutMs);
-            this.pending = { resolve, reject, timer };
-        });
+        await this.device.transferOut(this.outEp, packet);
 
-        try {
-            await this.device.sendReport(0x01, report);
-        } catch (e) {
-            if (this.pending) {
-                clearTimeout(this.pending.timer);
-                this.pending = null;
-            }
-            throw e;
+        const result = await this._withTimeout(
+            this.device.transferIn(this.inEp, PACKET_SIZE), timeoutMs);
+
+        if (result.status !== "ok" || !result.data || result.data.byteLength < 3) {
+            throw new Error(t("err_response_invalid"));
         }
 
-        return responsePromise;
+        const data = new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength);
+        if (data[0] !== PACKET_RSP_ID || data[2] === CMD_ERROR) {
+            throw new Error(t("err_response_invalid"));
+        }
+        if (data[2] !== cmd) {
+            throw new Error(t("err_cmd_mismatch") +
+                `0x${data[2].toString(16).padStart(2, "0")} != 0x${cmd.toString(16).padStart(2, "0")}`);
+        }
+        return data;
     }
 
     async ping() {
         const resp = await this._transaction(CMD_PING, new Uint8Array(0), 1000);
-        if (resp[1] !== CMD_PING) throw new Error(t("err_ping_response"));
-        const magic = (resp[2] | (resp[3] << 8) | (resp[4] << 16) | (resp[5] << 24)) >>> 0;
+        if (resp[2] !== CMD_PING) throw new Error(t("err_ping_response"));
+        const magic = (resp[3] | (resp[4] << 8) | (resp[5] << 16) | (resp[6] << 24)) >>> 0;
         if (magic !== MAGIC_NUMBER) throw new Error(t("err_magic_mismatch") + magic.toString(16));
         return magic;
     }
 
     async getString(cmd, timeoutMs = 1000) {
         const resp = await this._transaction(cmd, new Uint8Array(0), timeoutMs);
-        const len = resp[0] - 1;
+        const len = resp[1] - 1;
         if (len <= 0) return "";
-        const bytes = resp.slice(2, 2 + len);
+        const bytes = resp.slice(3, 3 + len);
         const nullIndex = bytes.indexOf(0);
         const strBytes = nullIndex >= 0 ? bytes.slice(0, nullIndex) : bytes;
         return new TextDecoder().decode(strBytes);
@@ -299,7 +353,7 @@ class HidBootloader {
 
     async getProgramInfo() {
         const resp = await this._transaction(CMD_GET_PROGRAM_INFO, new Uint8Array(0), 1000);
-        return (resp[2] | (resp[3] << 8) | (resp[4] << 16) | (resp[5] << 24)) >>> 0;
+        return (resp[3] | (resp[4] << 8) | (resp[5] << 16) | (resp[6] << 24)) >>> 0;
     }
 
     async eraseApplication() {
@@ -319,14 +373,15 @@ class HidBootloader {
 
     async checkApplication() {
         const resp = await this._transaction(CMD_CHECK_APPLICATION, new Uint8Array(0), 2000);
-        return resp[2] === 0x01;
+        return resp[3] === 0x01;
     }
 
     async jumpApplication() {
-        const report = new Uint8Array(REPORT_SIZE - 1);
-        report[0] = 0x01;
-        report[1] = CMD_JUMP_APPLICATION;
-        await this.device.sendReport(0x01, report);
+        const packet = new Uint8Array(PACKET_SIZE);
+        packet[0] = PACKET_REQ_ID;
+        packet[1] = 0x01;
+        packet[2] = CMD_JUMP_APPLICATION;
+        await this.device.transferOut(this.outEp, packet);
     }
 }
 
@@ -334,7 +389,7 @@ class HidBootloader {
 // UI
 // ------------------------------------------------------------------
 
-const bl = new HidBootloader();
+const bl = new WinUsbBootloader();
 
 const elStatus = document.getElementById("connStatus");
 const elInfoCard = document.getElementById("deviceInfoCard");
@@ -454,12 +509,22 @@ async function runUpgrade(image, label) {
 
         log(t("log_upgrade_success").replace("{0}", label), "ok");
         await bl.jumpApplication();
+        await bl.close();
         setConnected(false);
         setProgress(0, 0);
         log(t("log_jumped"), "ok");
     } catch (e) {
         log(t("log_upgrade_failed").replace("{0}", label) + e.message, "error");
         setProgress(0, 0);
+    }
+}
+
+function validateImageSize(size) {
+    if (size < APP_HEADER_SIZE) {
+        throw new Error(t("err_file_too_small") + `${size} < ${APP_HEADER_SIZE}`);
+    }
+    if (size > APP_FLASH_SIZE) {
+        throw new Error(t("err_file_too_large") + `${size} > ${APP_FLASH_SIZE}`);
     }
 }
 
@@ -470,6 +535,7 @@ async function upgradeFile() {
     try {
         const arrayBuffer = await file.arrayBuffer();
         const image = new Uint8Array(arrayBuffer);
+        validateImageSize(image.length);
         await runUpgrade(image, t("btn_upgrade"));
     } catch (e) {
         log(t("log_file_error") + e.message, "error");
@@ -489,6 +555,7 @@ async function exitDfu() {
 
         log(t("log_app_verify_success"), "ok");
         await bl.jumpApplication();
+        await bl.close();
         setConnected(false);
         log(t("log_jumped"), "ok");
     } catch (e) {
@@ -536,20 +603,31 @@ function formatFileSize(bytes) {
 
 elFile.addEventListener("change", () => {
     const file = elFile.files[0];
-    if (file) {
-        elFileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
-    } else {
+    if (!file) {
         elFileInfo.textContent = t("file_not_selected");
+        return;
+    }
+    elFileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
+    try {
+        validateImageSize(file.size);
+    } catch (e) {
+        elFileInfo.textContent += ` — ${e.message}`;
     }
 });
 
-navigator.hid?.addEventListener("disconnect", (e) => {
+navigator.usb?.addEventListener("disconnect", async (e) => {
     if (e.device === bl.device) {
         setConnected(false);
         log(t("log_device_disconnected"), "error");
+        await bl.close();
     }
 });
 
 initTheme();
 initLang();
 log(t("log_initialized"));
+if (navigator.usb) {
+    log(t("log_api_ok"));
+} else {
+    log(t("log_api_missing"), "error");
+}

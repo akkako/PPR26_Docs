@@ -232,6 +232,14 @@ input[type="text"]:focus {
     color: var(--text-2);
 }
 
+.file-hint {
+    margin: 8px 0 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
+    opacity: 0.85;
+}
+
 .btn-group {
     display: flex;
     flex-wrap: wrap;
