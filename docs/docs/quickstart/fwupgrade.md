@@ -1,13 +1,15 @@
 # 固件升级指南
 
-PPR26 使用 USB HID 进行固件升级，在 Windows，Linux，macOS 上均为免驱支持。
+PPR26 通过 USB 进行固件升级，在 Windows、Linux、macOS 上均免驱支持（设备携带 WCID 描述符，Windows 会自动绑定 WinUSB 驱动）。
 
-固件升级需要使用专用上位机，本仪器提供两种不同的上位机升级工具，分别为：
+固件升级需要使用专用上位机，本仪器提供两种升级工具：
 
-1. WebHID 实现的 WebUI 上位机（具有图形界面，使用简单，适用于绝大多数使用场景）
-2. 基于 python 的升级脚本（命令行实现）
+1. 网页版 WebUI 上位机（图形界面，使用简单，推荐绝大多数场景）
+2. 基于 Python 的命令行升级脚本
 
-对于大多数用户，推荐使用 WebUI 上位机：[PPR26 HID DFU WebUI](https://github.com/akkako/PPR26/tree/main/software/hidboot_webui)
+对于大多数用户，推荐使用网页版：
+
+- 在线地址：[PPR26 Bootloader 升级工具](https://akkako.github.io/PPR26_Docs/bootloader/)
 
 ## 通过 WebUI 升级
 
@@ -17,13 +19,13 @@ PPR26 使用 USB HID 进行固件升级，在 Windows，Linux，macOS 上均为�
 
 ### 步骤 2：打开 WebUI 升级网页
 
-点击[PPR26 HID DFU WebUI](https://github.com/akkako/PPR26/tree/main/software/hidboot_webui)进入 WebUI 升级网页。
+使用 Chrome / Edge 109+ 打开 [PPR26 Bootloader 升级工具](https://akkako.github.io/PPR26_Docs/bootloader/)。
 
 ### 步骤 3：连接设备
 
-点击 WebUI 的连接设备按键，并在浏览器弹出的选择框中选择 `PPR26 HID DFU`。
+点击 WebUI 的 **连接设备** 按键，并在浏览器弹出的选择框中选择 `PPR26 WinUSB DFU`。
 
-点击连接按键，此时应显示 `已连接` 状态。
+连接成功后，页面会显示 `已连接` 状态。
 
 !!! warning "注意事项"
     如果选择框中没有对应设备，或者连接失败，请检查设备连接和供电情况，以及设备是否进入 DFU 模式。
@@ -32,70 +34,62 @@ PPR26 使用 USB HID 进行固件升级，在 Windows，Linux，macOS 上均为�
 
 连接成功后，在设备信息栏中将显示相关信息：
 
-| 信息条目           | 信息示例                 |
-| ------------------ | ------------------------ |
-| 供应商             | akaInstruments           |
-| 设备型号           | PPR26                    |
-| 设备序列号         | 8704305548517271066FFF49 |
-| 制造日期           | 2026-07-25               |
-| 硬件版本           | FEEFFFFF                 |
-| Bootloader版本     | BL 1.0.0                |
-| 固件版本           | FW 1.0.5                |
-| Bootloader编译时间 | 2026-07-27 14:20:23     |
-| 固件编译时间       | 2026-07-27 13:03:09     |
+| 信息条目 | 信息示例 |
+| -------- | -------- |
+| 供应商 | akaInstruments |
+| 设备型号 | PPR26 |
+| 设备序列号 | 8704305548517271066FFF49 |
+| 制造日期 | 26-09 |
+| 硬件版本 | 0 |
+| Bootloader版本 | BL 1.0.0 |
+| 固件版本 | FW v1.0.5 |
+| Bootloader编译时间 | 2026-09-27 13:07:47 |
+| 固件编译时间 | 2026-09-27 13:03:09 |
+
+!!! info "信息说明"
+    制造日期格式为 `YY-WW`，表示生产年份后两位与生产周数，例如 `26-09` 表示 2026 年第 9 周；硬件版本为单个数字 `0`-`6`。
 
 ### 步骤 5：选择待升级固件文件
 
-在升级框中，点击选择固件按键，并在弹出的对话框中选择待升级的固件文件。
+在升级框中，点击 **选择固件** 按键，并在弹出的对话框中选择随版本发布的固件文件（`*_pack.bin`）。
+
+!!! warning "注意"
+    请选择随版本发布的 `*_pack.bin` 固件文件，不要选择 `.hex` 或其它未经打包的文件。
 
 ### 步骤 6：执行固件升级
 
-选择待升级固件后，点击一键升级按键，即可自动完成升级流程。
+选择待升级固件后，点击 **一键升级** 按键，即可自动完成升级流程。
 
-升级完成后，仪器将自动退出 DFU 模式。
+升级完成后，仪器将自动退出 DFU 模式并运行新固件。
 
-## 通过 python 脚本升级
+## 通过 Python 脚本升级
 
-### 步骤 1：下载 python 脚本
+!!! info "说明"
+    Python 脚本随版本发布提供，需要 Python 3.8+ 与 `pyusb` 依赖（Windows 下通常无需额外安装 USB 驱动）。
 
-使用 git 克隆此仓库：[PPR26 HID DFU Tool](https://github.com/akkako/PPR26)
-
-```bash
-git clone https://github.com/akkako/PPR26
-```
-
-### 步骤 2：安装所需依赖
-
-升级脚本需要 Python 3.8+ 和 `hidapi>=0.14.0` 的 python 库依赖。
-
-通过以下命令安装依赖：
+### 步骤 1：安装依赖
 
 ```bash
-pip install -r requirements.txt
+pip install pyusb
 ```
-!!! tip "信息提示"
-    在 Windows 上，该工具使用系统原生 HID 驱动，通常无需额外安装 USB 驱动。
 
-### 步骤 3：进入仪器的 DFU 模式
+### 步骤 2：进入仪器的 DFU 模式
 
 断开仪器的电源，按住仪器前面板上的 DFU 升级按键，重新接入电源后，再松开按键。
 
-### 步骤 4：执行升级脚本
+### 步骤 3：执行升级脚本
 
-#### 帮助说明
-
-帮助命令为：
+帮助说明：
 
 ```bash
-python hid_bootloader.py --help
+python winusb_bootloader.py --help
 ```
 
-
 ```text
-usage: hid_bootloader.py [-h] [--vid VID] [--pid PID] [--sn SN] [--info] [--program FILE] [--check] [--jump]
-                         [--upgrade FILE]
+usage: winusb_bootloader.py [-h] [--vid VID] [--pid PID] [--sn SN] [--info]
+                            [--program FILE] [--check] [--jump] [--upgrade FILE]
 
-PPR26 HID bootloader host tool
+PPR26 WinUSB bootloader host tool
 
 options:
   -h, --help      show this help message and exit
@@ -103,7 +97,7 @@ options:
   --pid PID       USB PID
   --sn SN         Device serial number
   --info          Read and display device info
-  --program FILE  Program a firmware file with bootloader header
+  --program FILE  Program a firmware image (*_pack.bin)
   --check         Check application integrity
   --jump          Jump to application
   --upgrade FILE  One-key upgrade: info -> erase -> program -> check -> jump
@@ -114,18 +108,16 @@ options:
 
 #### 查询设备信息
 
-查询设备信息的命令为：
-
 ```bash
-python hid_bootloader.py --info
+python winusb_bootloader.py --info
 ```
 
 执行结果示例：
 
 ```text
-> python hid_bootloader.py --info
+> python winusb_bootloader.py --info
 
-Connected to akaInstruments PPR26 HID DFU (SN: 8704305548517271066FFF49)
+Connected to akaInstruments PPR26 WinUSB DFU (SN: 8704305548517271066FFF49)
 Pinging device...
 Device responded.
 
@@ -133,75 +125,40 @@ Device information:
   Vendor:               akaInstruments
   Device Model:         PPR26
   Device SN:            8704305548517271066FFF49
-  Manufacture Date:     2026-07-25
-  Hardware Version:     FFFFFFFF
+  Manufacture Date:     26-09  (YY-WW)
+  Hardware Version:     0  (0-6)
   Bootloader Version:   BL 1.0.0
   Firmware Version:     FW v1.0.5
-  Bootloader Build Time:2026-07-27 16:20:03
-  Firmware Build Time:  2026-07-27 16:24:55
+  Bootloader Build Time:2026-09-27 13:07:47
+  Firmware Build Time:  2026-09-27 13:03:09
 ```
 
 #### 执行固件升级
 
-固件升级命令为：
+```bash
+python winusb_bootloader.py --upgrade PPR26_APP_pack.bin
+```
+
+将 `PPR26_APP_pack.bin` 替换为随版本发布的固件文件，执行此命令将自动完成擦除、编程、校验、跳转的全部流程。
+
+如果有多个设备同时连接，可以通过 `--sn` 参数指定 SN，升级单台设备：
 
 ```bash
-python hid_bootloader.py --upgrade app.bin
+python winusb_bootloader.py --sn 8704305548517271066FFF49 --upgrade PPR26_APP_pack.bin
 ```
 
-将 `app.bin` 替换为待升级的固件，执行此命令将自动完成擦除，编程，校验，跳转的全部流程。
+## 常见问题
 
-如果有多个设备同时连接，可以通过 `--sn` 参数指定 SN 升级单台设备。
+### 网页版提示要连接 HID 设备
 
-```bash
-python hid_bootloader.py --sn 8704305548517271066FFF49 --upgrade app.bin
-```
+浏览器加载了旧版缓存的页面。请强制刷新（Windows：`Ctrl + F5`；macOS：`Cmd + Shift + R`）或清除站点数据后重试，并使用 Chrome / Edge 109+。
 
-升级成功输出示例：
+### 设备列表中找不到设备
 
-```text
-> python hid_bootloader.py --upgrade .\PPR26_APP_v1.0.5.bin
+- 确认设备已进入 DFU 模式。
+- 本工具只支持新版 WinUSB Bootloader 设备。
+- 关闭可能占用设备的其它程序，或重新插拔设备。
 
-Connected to akaInstruments PPR26 HID DFU (SN: 8704305548517271066FFF49)
-Pinging device...
-Device responded.
+### 升级校验失败
 
-Device information:
-  Vendor:               akaInstruments
-  Device Model:         PPR26
-  Device SN:            8704305548517271066FFF49
-  Manufacture Date:     2026-07-25
-  Hardware Version:     FFFFFFFF
-  Bootloader Version:   BL 1.0.0
-  Firmware Version:     FW v1.0.5
-  Bootloader Build Time:2026-07-27 16:20:03
-  Firmware Build Time:  2026-07-27 16:24:55
-
-Programming firmware image (17264 bytes)...
-Erasing application...
-Programming 17264 bytes in 1024-byte pages...
-  1024/17264 bytes programmed
-  2048/17264 bytes programmed
-  3072/17264 bytes programmed
-  4096/17264 bytes programmed
-  5120/17264 bytes programmed
-  6144/17264 bytes programmed
-  7168/17264 bytes programmed
-  8192/17264 bytes programmed
-  9216/17264 bytes programmed
-  10240/17264 bytes programmed
-  11264/17264 bytes programmed
-  12288/17264 bytes programmed
-  13312/17264 bytes programmed
-  14336/17264 bytes programmed
-  15360/17264 bytes programmed
-  16384/17264 bytes programmed
-  17264/17264 bytes programmed
-Programming finished.
-
-Checking application...
-Application check: PASS
-
-Jumping to application...
-Device disconnected.
-```
+请确认选择的是随版本发布的 `*_pack.bin` 固件文件，而不是其它来源或未经打包的文件。

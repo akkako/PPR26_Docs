@@ -9,9 +9,9 @@ const MAGIC_NUMBER = 0x0D000721;
 const PROGRAM_DATA_MAX_LEN = 61;
 const PACKET_SIZE = 64;
 
-/*!< xboot app region layout (see xboot.h) */
-const APP_HEADER_SIZE = 512;          // XBOOT_APP_HEADER_SIZE
-const APP_FLASH_SIZE = 42 * 1024;     // XBOOT_APP_FLASH_SIZE (header + payload)
+/*!< application image layout */
+const APP_HEADER_SIZE = 512;          // 512-byte firmware header
+const APP_FLASH_SIZE = 42 * 1024;     // total application region (header + payload)
 const PACKET_REQ_ID = 0x01;
 const PACKET_RSP_ID = 0x02;
 
