@@ -1,0 +1,351 @@
+:root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-2: #f0f1f3;
+    --text: #1f2329;
+    --text-2: #5c6370;
+    --border: #e0e2e6;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --danger: #dc2626;
+    --danger-hover: #b91c1c;
+    --success: #16a34a;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --radius: 10px;
+}
+
+[data-theme="dark"] {
+    --bg: #16181d;
+    --surface: #1e2128;
+    --surface-2: #272a32;
+    --text: #e8eaed;
+    --text-2: #9aa0a6;
+    --border: #30343c;
+    --accent: #60a5fa;
+    --accent-hover: #3b82f6;
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --success: #22c55e;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.brand-icon {
+    font-size: 24px;
+    color: var(--accent);
+}
+
+h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+}
+
+h2 {
+    margin: 0 0 16px 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 22px;
+    margin-bottom: 20px;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.status {
+    font-size: 14px;
+    color: var(--text-2);
+}
+
+.status.connected {
+    color: var(--success);
+    font-weight: 500;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+    user-select: none;
+}
+
+.btn:hover {
+    background: var(--border);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+.btn.primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.btn.danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+
+.btn.danger:hover {
+    background: var(--danger-hover);
+    border-color: var(--danger-hover);
+}
+
+.btn.small {
+    padding: 5px 12px;
+    font-size: 12px;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+}
+
+.icon-btn:hover {
+    background: var(--surface-2);
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.form-row label {
+    flex: 1 1 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-2);
+}
+
+input[type="text"] {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s ease, background 0.2s ease;
+}
+
+input[type="text"]:focus {
+    border-color: var(--accent);
+}
+
+.file-label {
+    cursor: pointer;
+}
+
+.file-label input[type="file"] {
+    display: none;
+}
+
+.file-name {
+    font-size: 13px;
+    color: var(--text-2);
+}
+
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+    min-height: 24px;
+}
+
+progress {
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: none;
+    background: var(--surface-2);
+}
+
+progress::-webkit-progress-bar {
+    background: var(--surface-2);
+}
+
+progress::-webkit-progress-value {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+progress::-moz-progress-bar {
+    background: var(--accent);
+    border-radius: 4px;
+}
+
+.progress-text {
+    font-size: 13px;
+    color: var(--text-2);
+    min-width: 70px;
+    text-align: right;
+}
+
+.info-list {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 8px 16px;
+    margin: 0 0 16px 0;
+    font-size: 14px;
+}
+
+.info-list dt {
+    color: var(--text-2);
+}
+
+.info-list dd {
+    margin: 0;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.log-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+}
+
+.log-header h2 {
+    margin: 0;
+}
+
+.log-output {
+    margin: 0;
+    padding: 16px 18px;
+    min-height: 160px;
+    max-height: 360px;
+    overflow-y: auto;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--surface);
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+@media (max-width: 560px) {
+    .container {
+        padding: 20px 14px;
+    }
+
+    .btn-group {
+        flex-direction: column;
+    }
+
+    .btn-group .btn {
+        width: 100%;
+    }
+
+    .info-list {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .info-list dd {
+        margin-bottom: 10px;
+    }
+}

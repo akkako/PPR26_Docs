@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPR26 HID Bootloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="brand">
+                <span class="brand-icon">◉</span>
+                <h1>PPR26 HID Bootloader</h1>
+            </div>
+            <div class="header-actions">
+                <button id="themeToggle" class="icon-btn" data-i18n-title="toggle_theme">◐</button>
+                <button id="langToggle" class="icon-btn" data-i18n-title="toggle_lang">EN</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="card">
+                <h2 data-i18n="title_connect">连接</h2>
+                <div class="row">
+                    <button id="btnConnect" class="btn primary" data-i18n="btn_connect">连接设备</button>
+                    <button id="btnExitDfu" class="btn" data-i18n="btn_exit_dfu" disabled>退出DFU</button>
+                    <span id="connStatus" class="status" data-i18n="status_disconnected">未连接</span>
+                </div>
+            </section>
+
+            <section class="card" id="deviceInfoCard" hidden>
+                <h2 data-i18n="title_device_info">设备信息</h2>
+                <dl id="infoList" class="info-list"></dl>
+                <button id="btnRefreshInfo" class="btn" data-i18n="btn_refresh_info">刷新信息</button>
+            </section>
+
+            <section class="card">
+                <h2 data-i18n="title_upgrade">升级</h2>
+                <div class="btn-group">
+                    <label class="file-label">
+                        <input type="file" id="fwFile" accept=".bin,.hex">
+                        <span class="btn" data-i18n="btn_select_file">选择固件文件</span>
+                    </label>
+                    <button id="btnUpgrade" class="btn primary" data-i18n="btn_upgrade" disabled>一键升级</button>
+                </div>
+                <div id="fileInfo" class="file-name">未选择文件</div>
+                <div class="progress-wrap">
+                    <progress id="progressBar" value="0" max="100" hidden></progress>
+                    <span id="progressText" class="progress-text"></span>
+                </div>
+            </section>
+        </main>
+
+        <section class="card log-card">
+            <div class="log-header">
+                <h2 data-i18n="title_log">日志</h2>
+                <button id="btnClearLog" class="btn small" data-i18n="btn_clear_log">清空</button>
+            </div>
+            <pre id="logOutput" class="log-output"></pre>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
