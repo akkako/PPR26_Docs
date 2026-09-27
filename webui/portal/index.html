@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PPR26 工具中心</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="brand">
+                <span class="brand-icon">◉</span>
+                <h1 data-i18n="app_title">PPR26 工具中心</h1>
+            </div>
+            <div class="header-actions">
+                <button id="themeToggle" class="icon-btn" data-i18n-title="toggle_theme">◐</button>
+                <button id="langToggle" class="icon-btn" data-i18n-title="toggle_lang">EN</button>
+            </div>
+        </header>
+
+        <main>
+            <section class="card">
+                <h2 data-i18n="entry_title">功能入口</h2>
+                <p class="entry-desc" data-i18n="entry_desc">选择一个功能开始使用：</p>
+                <div class="entry-grid">
+                    <a href="docs/" class="entry-item">
+                        <span class="entry-icon">▤</span>
+                        <div class="entry-text">
+                            <h3 data-i18n="entry_docs">在线文档</h3>
+                            <p data-i18n="entry_docs_desc">查看 PPR26 设备规格、快速上手与参考文档</p>
+                        </div>
+                        <span class="entry-arrow">→</span>
+                    </a>
+                    <a href="bootloader/" class="entry-item">
+                        <span class="entry-icon">▲</span>
+                        <div class="entry-text">
+                            <h3 data-i18n="entry_bootloader">Bootloader 升级工具</h3>
+                            <p data-i18n="entry_bootloader_desc">通过 WebHID 连接设备并升级固件</p>
+                        </div>
+                        <span class="entry-arrow">→</span>
+                    </a>
+                    <a href="serial/" class="entry-item">
+                        <span class="entry-icon">⌁</span>
+                        <div class="entry-text">
+                            <h3 data-i18n="entry_serial">串口上位机控制工具</h3>
+                            <p data-i18n="entry_serial_desc">通过串口控制 PPR26 设备（建设中）</p>
+                        </div>
+                        <span class="entry-arrow">→</span>
+                    </a>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

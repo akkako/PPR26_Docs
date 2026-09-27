@@ -1,4 +1,4 @@
-name: Deploy MkDocs to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -37,10 +37,28 @@ jobs:
       - name: Build MkDocs site
         run: mkdocs build --config-file docs/mkdocs.yml
 
+      - name: Assemble static site
+        run: |
+          # 组装发布目录：入口页在根目录，文档放 /docs/，工具放 /bootloader/ 与 /serial/
+          rm -rf site
+          mkdir -p site/docs site/bootloader site/serial
+
+          # 1) MkDocs 构建产物 -> /docs/
+          cp -r docs/site/. site/docs/
+
+          # 2) 入口页 -> 根目录
+          cp -r webui/portal/. site/
+
+          # 3) Bootloader 升级工具 -> /bootloader/
+          cp -r webui/bootloader/. site/bootloader/
+
+          # 4) 串口上位机占位页 -> /serial/
+          cp -r webui/serial/. site/serial/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/site
+          path: site
 
   deploy:
     needs: build
