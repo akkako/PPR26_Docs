@@ -16,7 +16,14 @@ PPR26 提供两种上位机工具用于设备控制与固件升级。
 
 ## Python 上位机
 
-Python 上位机脚本随版本发布提供，可完成设备信息查询与固件升级，适合脚本化 / 批量操作。依赖 Python 3.8+ 与 `pyusb`：
+Python 上位机可完成设备信息查询与固件升级，适合脚本化 / 批量操作。提供两种形式：
+
+- **Windows 可执行文件**：直接下载最新版 [PPR26_Bootloader.exe](https://github.com/akkako/PPR26_Docs/releases/latest/download/PPR26_Bootloader.exe)（内置依赖，直接运行）
+- **Python 脚本** `winusb_bootloader.py`
+
+下载与详细用法见[工具下载与使用](downloads.md)。
+
+使用 Python 脚本需要 Python 3.8+ 与 `pyusb`：
 
 ```bash
 pip install pyusb

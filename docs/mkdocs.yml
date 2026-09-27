@@ -80,3 +80,4 @@ nav:
     - reference/python_scpi.md
   - 上位机指南:
     - software/getstarted.md
+    - software/downloads.md

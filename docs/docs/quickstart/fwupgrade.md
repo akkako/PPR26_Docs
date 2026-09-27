@@ -65,9 +65,12 @@ PPR26 通过 USB 进行固件升级，在 Windows、Linux、macOS 上均免驱�
 ## 通过 Python 脚本升级
 
 !!! info "说明"
-    Python 脚本随版本发布提供，需要 Python 3.8+ 与 `pyusb` 依赖（Windows 下通常无需额外安装 USB 驱动）。
+    可直接下载最新版 [PPR26_Bootloader.exe](https://github.com/akkako/PPR26_Docs/releases/latest/download/PPR26_Bootloader.exe) 或 [PPR26_Bootloader_win32.zip](https://github.com/akkako/PPR26_Docs/releases/latest/download/PPR26_Bootloader_win32.zip)，更多文件见[工具下载与使用](../software/downloads.md)。可执行文件已内置依赖，推荐直接使用；使用 Python 脚本需要 Python 3.8+ 与 `pyusb`（Windows 下还需 `libusb-1.0.dll`，发布页提供）。
 
-### 步骤 1：安装依赖
+### 步骤 1：准备工具
+
+- 使用可执行文件：下载 `PPR26_Bootloader.exe`，可直接运行。
+- 使用 Python 脚本：安装依赖，并确保 Windows 下 `libusb-1.0.dll` 与脚本同目录。
 
 ```bash
 pip install pyusb
