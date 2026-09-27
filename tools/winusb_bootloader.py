@@ -58,7 +58,7 @@ CMD_ERROR = 0xFF
 MAGIC_NUMBER = 0x0D000721
 
 APP_HEADER_SIZE = 512                 # XBOOT_APP_HEADER_SIZE
-APP_FLASH_SIZE = 42 * 1024            # XBOOT_APP_FLASH_SIZE (header + payload)
+APP_FLASH_SIZE = 46080                # XBOOT_APP_FLASH_SIZE = 0x0800F400 - 0x08004000
 
 
 class WinUsbBootloaderError(Exception):

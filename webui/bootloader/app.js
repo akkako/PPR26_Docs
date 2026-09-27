@@ -11,7 +11,7 @@ const PACKET_SIZE = 64;
 
 /*!< application image layout */
 const APP_HEADER_SIZE = 512;          // 512-byte firmware header
-const APP_FLASH_SIZE = 42 * 1024;     // total application region (header + payload)
+const APP_FLASH_SIZE = 46080;         // total application region (header + payload)
 const PACKET_REQ_ID = 0x01;
 const PACKET_RSP_ID = 0x02;
 
