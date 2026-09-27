@@ -6,6 +6,8 @@ repo_name: GitHub
 theme:
   name: material
   language: zh
+  logo: assets/resistor_box_logo.svg
+  favicon: assets/resistor_box_logo.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

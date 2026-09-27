@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/docs/assets/resistor_box_logo.svg" alt="PPR26" width="120" />
+</p>
+
 # PPR26 文档中心
 
 本仓库为 PPR26 文档与在线工具源码仓库，通过 GitHub Actions 部署到 GitHub Pages。
