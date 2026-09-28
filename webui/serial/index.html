@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PPR26 串口上位机控制工具</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>PPR26 Serial Console</title>
     <link rel="icon" type="image/svg+xml" href="resistor_box_logo.svg">
-    <link rel="stylesheet" href="../style.css?v=winusb-3">
+    <!-- Cache-busting: bump the version whenever app.js/style.css changes. -->
+    <link rel="stylesheet" href="style.css?v=serial-1">
 </head>
 <body>
     <div class="container">
         <header class="header">
             <div class="brand">
                 <img class="brand-icon" src="resistor_box_logo.svg" alt="PPR26 logo">
-                <h1 data-i18n="serial_title">PPR26 串口上位机控制工具</h1>
+                <h1 data-i18n="page_title">PPR26 串口上位机</h1>
             </div>
             <div class="header-actions">
+                <a class="icon-btn" href="../" data-i18n-title="btn_back">←</a>
                 <button id="themeToggle" class="icon-btn" data-i18n-title="toggle_theme">◐</button>
                 <button id="langToggle" class="icon-btn" data-i18n-title="toggle_lang">EN</button>
             </div>
@@ -22,19 +27,129 @@
 
         <main>
             <section class="card">
-                <h2 data-i18n="serial_title">PPR26 串口上位机控制工具</h2>
-                <p class="entry-desc" data-i18n="serial_wip">该工具正在建设中，敬请期待。</p>
-                <a href="../" class="entry-item">
-                    <span class="entry-icon">←</span>
-                    <div class="entry-text">
-                        <h3 data-i18n="serial_back">返回工具中心</h3>
+                <h2 data-i18n="title_connect">连接</h2>
+                <div class="row">
+                    <button id="btnConnect" class="btn primary" data-i18n="btn_connect">连接设备</button>
+                    <button id="btnDisconnect" class="btn" data-i18n="btn_disconnect" disabled>断开</button>
+                    <button id="btnRefresh" class="btn" data-i18n="btn_refresh" disabled>刷新</button>
+                    <span id="connStatus" class="status" data-i18n="status_disconnected">未连接</span>
+                </div>
+                <p class="hint" data-i18n="connect_hint"></p>
+            </section>
+
+            <section class="card">
+                <h2 data-i18n="title_resistance">阻值控制</h2>
+
+                <div class="value-row">
+                    <div class="value-block">
+                        <div class="value-label" data-i18n="label_sp">设定阻值</div>
+                        <div id="spDisplay" class="value-num">--</div>
                     </div>
-                    <span class="entry-arrow">→</span>
-                </a>
+                    <div class="value-block">
+                        <div class="value-label" data-i18n="label_pv">实际估测</div>
+                        <div id="pvDisplay" class="value-num muted">--</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label class="field">
+                        <span data-i18n="label_set_resistance">设定阻值</span>
+                        <div class="input-group">
+                            <input type="text" id="inputSp" inputmode="decimal" autocomplete="off" spellcheck="false" disabled>
+                            <select id="unitSp" disabled>
+                                <option value="1000">Ω</option>
+                                <option value="1000000">kΩ</option>
+                                <option value="1000000000">MΩ</option>
+                            </select>
+                            <button id="btnSetSp" class="btn primary" data-i18n="btn_set" disabled>设置</button>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="form-row">
+                    <label class="field">
+                        <span data-i18n="label_step">步进值</span>
+                        <div class="input-group">
+                            <input type="text" id="inputStep" inputmode="decimal" autocomplete="off" spellcheck="false" disabled>
+                            <select id="unitStep" disabled>
+                                <option value="1000">Ω</option>
+                                <option value="1000000">kΩ</option>
+                                <option value="1000000000">MΩ</option>
+                            </select>
+                            <button id="btnSetStep" class="btn" data-i18n="btn_set" disabled>设置</button>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="row">
+                    <button id="btnStepDown" class="btn" data-i18n="btn_step_down" disabled>− 单步</button>
+                    <button id="btnStepUp" class="btn" data-i18n="btn_step_up" disabled>+ 单步</button>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 data-i18n="title_limits">阻值限制</h2>
+
+                <label class="check">
+                    <input type="checkbox" id="chkLimit" disabled>
+                    <span data-i18n="label_limit_enable">启用限值</span>
+                </label>
+
+                <div class="form-row">
+                    <label class="field">
+                        <span data-i18n="label_min">最小阻值</span>
+                        <div class="input-group">
+                            <input type="text" id="inputMin" inputmode="decimal" autocomplete="off" spellcheck="false" disabled>
+                            <select id="unitMin" disabled>
+                                <option value="1000">Ω</option>
+                                <option value="1000000">kΩ</option>
+                                <option value="1000000000">MΩ</option>
+                            </select>
+                            <button id="btnSetMin" class="btn" data-i18n="btn_set" disabled>设置</button>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="form-row">
+                    <label class="field">
+                        <span data-i18n="label_max">最大阻值</span>
+                        <div class="input-group">
+                            <input type="text" id="inputMax" inputmode="decimal" autocomplete="off" spellcheck="false" disabled>
+                            <select id="unitMax" disabled>
+                                <option value="1000">Ω</option>
+                                <option value="1000000">kΩ</option>
+                                <option value="1000000000">MΩ</option>
+                            </select>
+                            <button id="btnSetMax" class="btn" data-i18n="btn_set" disabled>设置</button>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 data-i18n="title_output">输出状态</h2>
+                <div class="segmented" role="group">
+                    <button class="seg-btn" data-state="normal" data-i18n="state_normal" disabled>正常</button>
+                    <button class="seg-btn" data-state="open" data-i18n="state_open" disabled>开路</button>
+                    <button class="seg-btn" data-state="short" data-i18n="state_short" disabled>短路</button>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2 data-i18n="title_device_info">设备信息</h2>
+                <dl id="infoList" class="info-list"></dl>
             </section>
         </main>
+
+        <section class="card log-card">
+            <div class="log-header">
+                <h2 data-i18n="title_log">日志</h2>
+                <button id="btnClearLog" class="btn small" data-i18n="btn_clear_log">清空</button>
+            </div>
+            <pre id="logOutput" class="log-output"></pre>
+        </section>
     </div>
 
-    <script src="../app.js"></script>
+    <script src="app.js?v=serial-1"></script>
 </body>
 </html>

@@ -10,9 +10,11 @@ PPR26 提供两种上位机工具用于设备控制与固件升级。
 | ---- | ---- | ---- |
 | 工具中心 | <https://akkako.github.io/PPR26_Docs/> | 所有在线工具的入口 |
 | Bootloader 升级工具 | <https://akkako.github.io/PPR26_Docs/bootloader/> | 通过 WebUSB 升级固件 |
+| 串口上位机 | <https://akkako.github.io/PPR26_Docs/serial/> | 通过 WebSerial 设置阻值、限值与输出状态（需 AT 模式） |
 
 - 需要 Chrome / Edge 109+。
 - 固件升级步骤详见[固件升级指南](../quickstart/fwupgrade.md)。
+- 串口上位机使用方法详见[串口上位机（网页版）](webui_serial.md)。
 
 ## Python 上位机
 

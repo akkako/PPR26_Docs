@@ -14,11 +14,8 @@ const I18N = {
         entry_docs_desc: "查看 PPR26 设备规格、快速上手与参考文档",
         entry_bootloader: "Bootloader 升级工具",
         entry_bootloader_desc: "通过 WebUSB 连接设备并升级固件",
-        entry_serial: "串口上位机控制工具",
-        entry_serial_desc: "通过串口控制 PPR26 设备（建设中）",
-        serial_title: "PPR26 串口上位机控制工具",
-        serial_wip: "该工具正在建设中，敬请期待。",
-        serial_back: "返回工具中心",
+        entry_serial: "串口上位机",
+        entry_serial_desc: "通过 WebSerial 在浏览器中控制 PPR26 设备（AT 模式）",
     },
     en: {
         toggle_theme: "Toggle Theme",
@@ -30,11 +27,8 @@ const I18N = {
         entry_docs_desc: "Specifications, quick start and reference for PPR26",
         entry_bootloader: "Bootloader Upgrade Tool",
         entry_bootloader_desc: "Connect via WebUSB and upgrade firmware",
-        entry_serial: "Serial Console Tool",
-        entry_serial_desc: "Control PPR26 over serial (coming soon)",
-        serial_title: "PPR26 Serial Console Tool",
-        serial_wip: "This tool is under construction. Please stay tuned.",
-        serial_back: "Back to Tools",
+        entry_serial: "Serial Console",
+        entry_serial_desc: "Control PPR26 in the browser over WebSerial (AT mode)",
     }
 };
 
