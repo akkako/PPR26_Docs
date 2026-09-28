@@ -12,7 +12,7 @@
 const VID = 0xFFFE;
 const PID_AT = 0xFFFE;
 const BAUDRATE = 115200;
-const CMD_TIMEOUT_MS = 1500;
+const CMD_TIMEOUT_MS = 3000;
 
 /* Resistance range of the device: 5 Ohm .. 4 MOhm (mOhm, 64-bit). */
 const RES_MIN_MOHM = 5000;
@@ -100,6 +100,7 @@ const I18N = {
         log_connected: "设备已连接",
         log_disconnected: "设备已断开",
         log_please_connect: "请先连接设备",
+        log_unexpected: "收到非预期响应:",
     },
     en: {
         page_title: "PPR26 Serial Console",
@@ -176,6 +177,7 @@ const I18N = {
         log_connected: "Device connected",
         log_disconnected: "Device disconnected",
         log_please_connect: "Please connect the device first",
+        log_unexpected: "Unexpected response:",
     }
 };
 
@@ -285,7 +287,7 @@ class Ppr26Serial {
         this.reader = null;
         this.readLoop = null;
         this.lines = [];
-        this.pending = null;
+        this.waiters = [];
         this.buffer = "";
         this.decoder = new TextDecoder();
         this.chain = Promise.resolve();
@@ -328,7 +330,7 @@ class Ppr26Serial {
 
         this.port = port;
         this.lines = [];
-        this.pending = null;
+        this.waiters = [];
         this.buffer = "";
         this.chain = Promise.resolve();
         this._startReadLoop();
@@ -398,11 +400,11 @@ class Ppr26Serial {
         if (line === "") return;
         log(line, "rx");
 
-        if (this.pending) {
-            const p = this.pending;
-            this.pending = null;
-            clearTimeout(p.timer);
-            p.resolve(line);
+        // Each waiter owns its own timer; the oldest one consumes the line.
+        const waiter = this.waiters.shift();
+        if (waiter) {
+            clearTimeout(waiter.timer);
+            waiter.resolve(line);
             return;
         }
         if (this.onLine) {
@@ -417,11 +419,15 @@ class Ppr26Serial {
             return Promise.resolve(this.lines.shift());
         }
         return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => {
-                this.pending = null;
+            const waiter = { resolve, reject, timer: 0 };
+            waiter.timer = setTimeout(() => {
+                const index = this.waiters.indexOf(waiter);
+                if (index >= 0) {
+                    this.waiters.splice(index, 1);
+                }
                 reject(new Error(t("err_timeout")));
             }, timeoutMs);
-            this.pending = { resolve, timer };
+            this.waiters.push(waiter);
         });
     }
 
@@ -453,20 +459,28 @@ class Ppr26Serial {
 
         const deadline = Date.now() + CMD_TIMEOUT_MS;
         for (;;) {
-            const line = await this._waitLine(Math.max(1, deadline - Date.now()));
+            let line;
+            try {
+                line = await this._waitLine(Math.max(1, deadline - Date.now()));
+            } catch (e) {
+                // Name the command so a failing transaction is unambiguous.
+                throw new Error(t("err_timeout") + " [" + cmd + "]");
+            }
             if (line === "ERROR") {
-                throw new Error(t("err_device_error"));
+                throw new Error(t("err_device_error") + " [" + cmd + "]");
             }
             if (queryName) {
                 const prefix = "+" + queryName + "=";
                 if (line.startsWith(prefix)) {
                     return line.slice(prefix.length);
                 }
+                log(t("log_unexpected") + " " + line, "warn");
                 continue;
             }
             if (line === "OK") {
                 return "";
             }
+            log(t("log_unexpected") + " " + line, "warn");
         }
     }
 
@@ -578,7 +592,7 @@ let deviceState = null;
 
 function log(message, type = "info") {
     const now = new Date().toLocaleTimeString();
-    const prefix = { error: "[ERR]", ok: "[OK ]", tx: "[TX ]", rx: "[RX ]" }[type] || "[INF]";
+    const prefix = { error: "[ERR]", ok: "[OK ]", tx: "[TX ]", rx: "[RX ]", warn: "[WRN]" }[type] || "[INF]";
     elLog.textContent += now + " " + prefix + " " + message + "\n";
     elLog.scrollTop = elLog.scrollHeight;
 }
@@ -593,6 +607,7 @@ function setConnected(connected) {
     }
     document.getElementById("btnConnect").disabled = connected;
     CONTROLS.forEach(el => { if (el) el.disabled = !connected; });
+    stateButtons.forEach(btn => { btn.disabled = !connected; });
     if (!connected) {
         deviceInfo = null;
         deviceState = null;
@@ -678,6 +693,34 @@ function limitRange() {
     return [RES_MIN_MOHM, RES_MAX_MOHM];
 }
 
+/**
+ * Update the locally cached device state after a successful operation.
+ *
+ * Device settings are read once on connect (and on manual refresh); a write
+ * only sends the command for the item being changed and then patches the cache,
+ * so no extra traffic is generated and the input fields are not rewritten.
+ */
+function applyLocalState(patch) {
+    if (!deviceState) return;
+    Object.assign(deviceState, patch);
+    renderValues();
+    renderStateButtons(currentStateName(deviceState));
+    const noStep = deviceState.step <= 0;
+    elBtnStepDown.disabled = noStep;
+    elBtnStepUp.disabled = noStep;
+}
+
+/**
+ * Read back the present (estimated) resistance — the single value that cannot
+ * be derived locally after an output change. One command per operation.
+ */
+async function refreshPv() {
+    if (!deviceState) return;
+    const pvRaw = await dev.query("AT+RES.PV?", "RES.PV");
+    deviceState.pv = (pvRaw.toLowerCase() === "inf") ? "inf" : parseInt(pvRaw, 10);
+    renderValues();
+}
+
 function parseInput(inputEl, unitEl) {
     const raw = String(inputEl.value).trim().replace(",", ".");
     if (!/^\d+(\.\d+)?$/.test(raw)) {
@@ -700,11 +743,8 @@ async function refreshAll() {
     syncInputsFromState();
 }
 
-async function guarded(action) {
-    if (!dev.isOpen()) {
-        log(t("log_please_connect"), "error");
-        return;
-    }
+/** Run an action and report exceptions to the log. */
+async function run(action) {
     try {
         await action();
     } catch (e) {
@@ -712,12 +752,22 @@ async function guarded(action) {
     }
 }
 
+/** Same as run(), but only when a device is already connected. */
+async function guarded(action) {
+    if (!dev.isOpen()) {
+        log(t("log_please_connect"), "error");
+        return;
+    }
+    await run(action);
+}
+
 // ---------------- events ----------------
 
 document.getElementById("themeToggle").addEventListener("click", toggleTheme);
 document.getElementById("langToggle").addEventListener("click", toggleLang);
 
-document.getElementById("btnConnect").addEventListener("click", () => guarded(async () => {
+// The connect action must NOT use guarded(): no device is open yet.
+document.getElementById("btnConnect").addEventListener("click", () => run(async () => {
     log(t("log_connecting"));
     elStatus.textContent = t("status_connecting");
     setConnected(false);
@@ -764,9 +814,10 @@ document.getElementById("btnSetSp").addEventListener("click", () => guarded(asyn
         throw new Error(t("err_limit_range") + formatOhm(lo) + " ~ " + formatOhm(hi));
     }
     await dev.setResistance(mohm);
-    // Setting a resistance leaves the open/short state (firmware behavior).
-    deviceState = await dev.readState();
-    syncInputsFromState();
+    // Only this command (plus one read-back of the actual value) is sent; a
+    // successful set also returns the output to NORMAL on the device.
+    applyLocalState({ sp: mohm, open: false, short: false });
+    await refreshPv();
 }));
 
 document.getElementById("btnSetStep").addEventListener("click", () => guarded(async () => {
@@ -775,8 +826,7 @@ document.getElementById("btnSetStep").addEventListener("click", () => guarded(as
         throw new Error(t("err_value_range") + "0 ~ " + formatOhm(RES_MAX_MOHM));
     }
     await dev.setStep(mohm);
-    deviceState = await dev.readState();
-    syncInputsFromState();
+    applyLocalState({ step: mohm });
 }));
 
 elChkLimit.addEventListener("change", () => guarded(async () => {
@@ -787,8 +837,7 @@ elChkLimit.addEventListener("change", () => guarded(async () => {
         elChkLimit.checked = !wanted;
         throw e;
     }
-    deviceState = await dev.readState();
-    syncInputsFromState();
+    applyLocalState({ limitEnable: wanted });
 }));
 
 document.getElementById("btnSetMin").addEventListener("click", () => guarded(async () => {
@@ -800,8 +849,7 @@ document.getElementById("btnSetMin").addEventListener("click", () => guarded(asy
         throw new Error(t("err_limit_range") + formatOhm(RES_MIN_MOHM) + " ~ " + formatOhm(deviceState.max));
     }
     await dev.setMin(mohm);
-    deviceState = await dev.readState();
-    syncInputsFromState();
+    applyLocalState({ min: mohm });
 }));
 
 document.getElementById("btnSetMax").addEventListener("click", () => guarded(async () => {
@@ -813,8 +861,7 @@ document.getElementById("btnSetMax").addEventListener("click", () => guarded(asy
         throw new Error(t("err_limit_range") + formatOhm(deviceState.min) + " ~ " + formatOhm(RES_MAX_MOHM));
     }
     await dev.setMax(mohm);
-    deviceState = await dev.readState();
-    syncInputsFromState();
+    applyLocalState({ max: mohm });
 }));
 
 async function stepBy(direction) {
@@ -827,8 +874,8 @@ async function stepBy(direction) {
     if (target < RES_MIN_MOHM) target = RES_MIN_MOHM;
     if (target > RES_MAX_MOHM) target = RES_MAX_MOHM;
     await dev.setResistance(target);
-    deviceState = await dev.readState();
-    syncInputsFromState();
+    applyLocalState({ sp: target, open: false, short: false });
+    await refreshPv();
 }
 
 elBtnStepDown.addEventListener("click", () => guarded(() => stepBy(-1)));
@@ -836,20 +883,30 @@ elBtnStepUp.addEventListener("click", () => guarded(() => stepBy(1)));
 
 stateButtons.forEach(btn => btn.addEventListener("click", () => guarded(async () => {
     const target = btn.dataset.state;
+    let sent = false;
     if (target === "open") {
         await dev.setOpen(true);
+        applyLocalState({ open: true, short: false });
+        sent = true;
     } else if (target === "short") {
         await dev.setShort(true);
+        applyLocalState({ open: false, short: true });
+        sent = true;
     } else {
         // Restore: the firmware applies RES.SP again (and clears the other flag).
         if (deviceState && deviceState.short) {
             await dev.setShort(false);
+            applyLocalState({ open: false, short: false });
+            sent = true;
         } else if (deviceState && deviceState.open) {
             await dev.setOpen(false);
+            applyLocalState({ open: false, short: false });
+            sent = true;
         }
     }
-    deviceState = await dev.readState();
-    syncInputsFromState();
+    if (sent) {
+        await refreshPv();
+    }
 })));
 
 document.getElementById("btnClearLog").addEventListener("click", () => {
