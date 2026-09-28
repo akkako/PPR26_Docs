@@ -57,7 +57,7 @@ python winusb_bootloader.py --upgrade PPR26_APP_pack.bin
 | `--check` | 校验应用完整性 |
 | `--jump` | 跳转到应用 |
 | `--sn SN` | 多台设备时按序列号选择 |
-| `--vid / --pid` | 自定义 VID / PID（默认 `0xFFFE` / `0xFFFF`） |
+| `--vid / --pid` | 自定义 VID / PID（默认 `0xFFFE` / `0xFFFD`） |
 
 设备信息中的制造日期格式为 `YY-WW`（例如 `26-09` 表示 2026 年第 9 周），硬件版本为单个数字 `0`-`6`。
 

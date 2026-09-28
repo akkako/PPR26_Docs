@@ -4,7 +4,7 @@
  */
 
 const VID = 0xFFFE;
-const PID = 0xFFFF;
+const PID = 0xFFFD;
 const MAGIC_NUMBER = 0x0D000721;
 const PROGRAM_DATA_MAX_LEN = 61;
 const PACKET_SIZE = 64;
@@ -104,7 +104,7 @@ const I18N = {
         log_exit_dfu_failed: "退出DFU失败: ",
         log_device_disconnected: "设备已断开",
         log_initialized: "WebUSB 上位机已加载",
-        log_api_ok: "WebUSB 接口可用（navigator.usb），设备过滤 0xFFFE:0xFFFF",
+        log_api_ok: "WebUSB 接口可用（navigator.usb），设备过滤 0xFFFE:0xD",
         log_api_missing: "未检测到 navigator.usb，请改用 Chrome/Edge 并通过 http://localhost 或 https 打开",
     },
     en: {
@@ -173,7 +173,7 @@ const I18N = {
         log_exit_dfu_failed: "Exit DFU failed: ",
         log_device_disconnected: "Device disconnected",
         log_initialized: "WebUSB Bootloader loaded",
-        log_api_ok: "WebUSB available (navigator.usb), filtering 0xFFFE:0xFFFF",
+        log_api_ok: "WebUSB available (navigator.usb), filtering 0xFFFE:0xFFFD",
         log_api_missing: "navigator.usb is unavailable; use Chrome/Edge over http://localhost or https",
     }
 };

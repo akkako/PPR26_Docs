@@ -33,7 +33,7 @@ except ImportError:
 
 
 VID = 0xFFFE
-PID = 0xFFFF
+PID = 0xFFFD
 PACKET_SIZE = 64
 PROGRAM_DATA_MAX_LEN = 61  # max payload bytes per SendProgramData packet
 
