@@ -8,7 +8,7 @@
 
 ### 上位机与脚本
 
-本仪器提供基于 Python 的用户校准与测试脚本，可参考：[校准脚本](./script_calibration.md)、[测试脚本](./script_test.md)。
+本仪器提供基于 Python 的用户校准与测试脚本，可参考：[校准脚本](scripts/calibration.md)、[测试脚本](scripts/test.md)。
 
 ### 编程示例
 

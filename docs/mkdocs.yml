@@ -63,24 +63,25 @@ markdown_extensions:
   - pymdownx.snippets
 
 nav:
-  - 首页: 
-    - index.md
-    - datasheet/specification.md
-    - quickstart/quickstart.md
-    - reference/reference.md
-  - 设备规格: 
-    - datasheet/specification.md
-  - 使用说明: 
-    - quickstart/quickstart.md
-    - quickstart/fwupgrade.md
-    - quickstart/modeswitch.md
-  - 参考文档: 
-    - reference/reference.md
-    - reference/reference_at.md
-    - reference/reference_scpi.md
-    - reference/python_at.md
-    - reference/python_scpi.md
-  - 上位机指南:
-    - software/getstarted.md
-    - software/webui_serial.md
-    - software/downloads.md
+  - 首页: index.md
+  - 快速开始:
+      - 概览: quickstart/index.md
+      - 开箱与连接: quickstart/getting-started.md
+      - 通信模式切换: quickstart/modeswitch.md
+      - 固件升级: quickstart/fwupgrade.md
+  - 参考文档:
+      - 概览: reference/index.md
+      - AT 命令参考: reference/at.md
+      - SCPI 命令参考: reference/scpi.md
+      - AT Python 示例: reference/python_at.md
+      - SCPI Python 示例: reference/python_scpi.md
+      - 脚本参考:
+          - 概览: reference/scripts/index.md
+          - 校准脚本: reference/scripts/calibration.md
+          - 测试脚本: reference/scripts/test.md
+  - 上位机:
+      - 概览: software/index.md
+      - 上位机使用指南: software/getstarted.md
+      - 串口上位机（网页版）: software/webui_serial.md
+      - 工具下载与使用: software/downloads.md
+  - 设备规格: datasheet/index.md

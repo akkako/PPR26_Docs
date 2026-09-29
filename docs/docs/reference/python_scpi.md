@@ -7,7 +7,7 @@
 
     本文推荐使用 **NI-VISA**，后续示例均使用 NI-VISA 后端编写。
 
-本文使用 `pyvisa` 库进行 USB TMC 通信。完整的 SCPI 指令表见 [SCPI 命令参考](reference_scpi.md)。
+本文使用 `pyvisa` 库进行 USB TMC 通信。完整的 SCPI 指令表见 [SCPI 命令参考](scpi.md)。
 
 ## 环境准备
 

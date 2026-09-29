@@ -62,8 +62,8 @@ PPR26 具有两种通信模式，分别用于不同的上位机与使用场景�
 
 切换完成后按新协议重新连接：
 
-- **AT 模式**：使用串口工具或 `pyserial`，串口参数 `115200 / 8 / None / 1`，命令以换行结束。参见 [AT 命令参考](../reference/reference_at.md) 与 [AT Python 编程示例](../reference/python_at.md)。
-- **SCPI 模式**：使用 NI‑VISA / `pyvisa`，资源形如 `USB0::0xFFFE::0xFFFF::<序列号>::0::INSTR`，命令以换行 `<LF>` 结束。参见 [SCPI 命令参考](../reference/reference_scpi.md) 与 [SCPI Python 编程示例](../reference/python_scpi.md)。
+- **AT 模式**：使用串口工具或 `pyserial`，串口参数 `115200 / 8 / None / 1`，命令以换行结束。参见 [AT 命令参考](../reference/at.md) 与 [AT Python 编程示例](../reference/python_at.md)。
+- **SCPI 模式**：使用 NI‑VISA / `pyvisa`，资源形如 `USB0::0xFFFE::0xFFFF::<序列号>::0::INSTR`，命令以换行 `<LF>` 结束。参见 [SCPI 命令参考](../reference/scpi.md) 与 [SCPI Python 编程示例](../reference/python_scpi.md)。
 
 ## 常见问题
 

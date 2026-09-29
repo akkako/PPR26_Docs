@@ -5,7 +5,7 @@
 !!! tip "提示信息"
     使用 USB CDC 连接 PC，操作系统通常内置驱动，不需要手动安装驱动。
 
-本文使用 `pyserial` 库进行 USB CDC 通信。完整的 AT 指令表见 [AT 命令参考](reference_at.md)。
+本文使用 `pyserial` 库进行 USB CDC 通信。完整的 AT 指令表见 [AT 命令参考](at.md)。
 
 ## 环境准备
 
