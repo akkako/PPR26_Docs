@@ -4,545 +4,564 @@
 
 ### 仪器驱动程序
 
-本仪器使用 NI-VISA 驱动程序，请先安装 NI-VISA 驱动库以建立仪器通信。
+本仪器使用 **USB TMC**（USBTMC）通信，推荐安装 **NI-VISA** 驱动库以建立仪器通信。
 
-### 仪器上位机与脚本
+### 上位机与脚本
 
-本仪器提供了基于 Python 的上位机软件，快速上手可以参考：[上位机使用指南](../software/getstarted.md)。
+本仪器提供基于 Python 的用户校准与测试脚本，可参考：[校准脚本](./script_calibration.md)、[测试脚本](./script_test.md)。
 
-本仪器提供了基于 Python 的用户自校准和测试脚本，可以参考：[校准脚本](./script_calibration.md)，[测试脚本](./script_test.md)。
+### 编程示例
 
-### 仪器编程示例
-
-本仪器提供了基于 Pyhton 的编程示例，快速入门可以参考：[SCPI Python 编程示例](./python_scpi.md)。
+本仪器提供基于 Python 的编程示例：[SCPI Python 编程示例](./python_scpi.md)。
 
 ## SCPI 语言简介
 
-### 命令类型
+本仪器遵守当前 SCPI 版本的规则和约定（请参见 `SYSTem:VERSion?`）。SCPI 命令分为两类：
 
-本仪器遵守当前 SCPI 版本的规则和约定（请参见 [SYSTem:VERSion?](#SYSTem:VERSion?)）。
+- **子系统命令**：执行特定仪器功能，按树状层次组织，例如：
 
-SCPI( 可编程仪器的标准命令) 是一种基于 ASCII 的仪器命令语言，设计用于测试和测量仪器。SCPI 包含两种类型的命令，通用命令和子系统命令。
+  ```text
+  OUTPut
+      [:STATe] NORMal|SHORt|OPEN
+  RESIstance
+      [:LEVel][:IMMediate][:AMPLitude] <值>
+      :LIMit
+          :MINimum <值>
+  ```
 
-#### 子系统命令
-
-子系统命令执行特定的仪器功能。它们由按字母顺序排列的命令组成，这些命令扩展到分层结构中根下的一个或多个级别，也称为树系统。在此结构中，相关命令归组于共用结点或根下，这样就形成了子系统。下面列出了 OUTPut 子系统的一部分，用以说明树系统。注意，为了便于清楚说明，某些 [可选] 命令也包括在内。
-
-```text
-OUTPut
-    [:STATe] OFF|0|ON|1
-    :PON
-        :STATe RST|RCL0
-    :PROTection
-        :CLEar
-```
-
-#### IEEE-488.2 通用命令
-
-IEEE-488.2 标准定义了一组通用命令，可执行重置、自检以及状态操作等功能。通用命令始终以星号 (`*`) 开始，长度为 3 个字符，并且可能包括一个或多个参数。命令关键字与第一个参数由空格分隔。使用分号 (`;`) 可分隔多个命令。
+- **IEEE‑488.2 通用命令**：以 `*` 开头、长度为 3 个字符，用于复位、自检与状态操作，例如 `*IDN?`、`*RST`。
 
 ### 关键字
 
-关键字，也称为标题，是仪器识别的说明。通用命令也是关键字。
-
-`OUTPut` 是根关键字，`PROTection` 是第二级关键字，`CLEar` 是第三级关键字。冒号 (`:`) 用于分隔关键字级别。
-
-按照命令语法，大多数命令（和某些参数）都以大小写字母混合的方式表示。大写字母表示命令的缩写。对于较短的程序行，可以发送缩写格式的命令。如果要获得较好的程序可读性，可以发送长格式的命令。
-
-在上述示例中，`OUTP` 和 `OUTPUT` 都是可接受的格式。可以使用大写或小写字母。因此，`OUTPUT`、`outp` 和 `Outp` 都是可接受的。诸如 `OUT` 的其他格式无效，并且会产生错误。
+关键字（标题）**大小写不敏感**，短格式为大写部分、长格式为完整单词，两者等价。例如 `OUTP` 与 `OUTPUT` 均可，`OUT` 无效。
 
 ### 查询
 
-在关键字后面加一个问号 (`?`) 可将其变成一个查询 (例如：`VOLTage?`、`VOLTage:TRIGgered?`)。如果查询包含参数，那么将查询指示器放置在最后关键字的末尾、参数的前面。在查询指示器和第一个参数之间插入一个空格。
+在关键字后加 `?` 构成查询（如 `RES?`）。必须在发送下一条命令前读回所有查询结果，否则会因 Query Interrupted 丢失数据。
 
-您可以查询大多数参数的编程设定值。例如，您可以通过发送以下命令查询电压设置：
+### 分隔符与终止符
 
-```text
-VOLTage?
-```
-
-也可以查询最小或最大允许电压设置，方式是发送以下命令：
-
-```text
-VOLTage?MIN
-VOLTage?MAX
-```
-
-在发送另一个命令至仪器之前，必须读回所有查询的结果。否则，将会发生 Query Interrupted 的错误并丢失未返回的数据。
-
-### 命令分隔符和终止符
-
-#### 分隔符
-
-冒号 (`:`) 用于分隔关键字级别。必须使用空格将命令参数与其对应的关键字分隔开来。请注意 `STATe` 和 `*RST` 参数之间的空格。
-
-```text
-OUTPut:PON:STATe RST
-```
-
-分号 (`;`) 可用于分隔同一子系统中的命令。这样即可在同一消息字符串中发送多个子系统命令。例如，发送下列命令字符串：
-
-```text
-OUTPut:STATe ON;PON:STATe RST
-```
-
-与发送以下命令的作用相同：
-
-```text
-OUTPut ON
-OUTPut:PON:STATe RST
-```
-
-注意，分号跟随在分层树结构的隐含路径后。在上例中，可选的 `:STATe` 关键字必须跟随在 `OUTput` 关键字后，才能将命令解析器放置在层次结构的第二级别。这样可以在分号后使用 `PON` 关键字，因为 `PON` 是第二级关键字。
-
-您也可以将不同子系统命令合并在同一消息字符串中。在这种情况下，您必须使用冒号将命令解析器返回至根级才能访问另一个子系统。例如，您可以通过使用如下根说明符，清除输出保护并检查一条消息中的操作条件寄存器的状态：
-
-```text
-OUTPut:PROTection:CLEar;:STATus:OPERation:CONDition?
-```
-
-#### 终止符
-
-发送到仪器的命令字符串必须以一个换行 (`<NL>`) 字符结尾。可以将 IEEE-488 EOI (结束或标识) 消息解释为 `<NL>` 字符，并用来代替 `<NL>` 字符终止命令字符串。一个回车符后跟一个换行符 (`<CR><NL>`) 也是可接受的。命令字符串终止始终将当前的 SCPI 命令路径重置到根级。
-
-### 语法惯例
-
-- 尖括号 (`< >`) 表示必须为括号内的参数指定一个值。例如，在 `VOLTage <值>` 命令语法中，`<值>` 参数包含在尖括号内。方括号不会随命令字符串一起发送。您必须为该参数指定一个值 (例如：`VOLTage 50V`) ，除非您选择语法中的另一个选项 (例如：`VOLTage MAX`) 。
-- 竖条 (`|`) 隔开给定命令字符串的多个参数选择。例如，`OUTPut:PON:STATe` 命令中的 `RST|RCL0` 表示您可以指定 `RST` 或 `RCL0`。竖条不随命令字符串发送。
-- 方括号 (`[ ]`) 中包含一些语法元素，例如节点和参数。这表示该元素可选且可以省略。方括号不随命令字符串发送。方括号内的任何关键字均为可选且可以省略。但是，如果您要将多个命令合并在如前面所述的相同消息字符串中，则必须包含这些可选命令才能将命令解析器置于层次结构的正确层级上。
+- 冒号 `:` 分隔关键字层级；空格分隔关键字与其参数。
+- 分号 `;` 可在同一消息中分隔多条命令，例如 `OUTP NORM;RES 523000`。
+- 命令字符串必须以换行 `<LF>`（`\n`）结尾；`<CR><LF>` 也可接受。
 
 ### 参数类型
 
-SCPI 语言定义了命令和查询所使用的几种数据格式。
+| 类型       | 说明                                       |
+| ---------- | ------------------------------------------ |
+| `<NR1>`    | 十进制整数（阻值单位 **mΩ**）              |
+| `<NR2>`    | 带小数的十进制数（温度单位 ℃）            |
+| `<bool>`   | `0` / `1` / `OFF` / `ON`，查询返回 `0`/`1` |
+| `<str>`    | 字符串，建议使用双引号                     |
+| `<离散值>` | 枚举助记符，如 `NORMal`、`SHORt`           |
 
-#### 数值参数
+> 阻值统一使用**毫欧（mΩ）**整数，有效范围 **5 Ω ~ 4 MΩ**，不使用 `OHM/KOHM/MOHM` 单位后缀。
+> 下文示例中 `→` 表示查询返回内容。
 
-要求使用数值参数的命令支持所有常用的十进制数字表示法，包括可选符号、小数点和科学记数法等。如果命令只接受某些特定值，仪器会自动将输入数值参数四舍五入为可接受的值。下面这条命令要求为电压值使用数值参数：
+---
 
-```text
-[SOURce:]VOLTage 50V|MIN|MAX
-```
+## 通用命令（IEEE 488.2）
 
-注意数值参数的特殊值 (如 `MINimum` 和 `MAXimum`) 也是可接受的。不用选择特定的电压参数值，可以用 `MIN` 参数将电压设置为允许的最小值，或用 `MAX` 参数将电压设置为允许的最大值。
+### `*IDN?` — 识别查询
 
-您也可以发送带有数值参数的工程单位后缀 (例如，`V` 表示伏特，`A` 表示安培，`W` 表示瓦特)。所有参数值都使用基本单位。
+- **命令形式**：`*IDN?`
+- **返回**：`<厂商>,<型号>,<序列号>,<固件版本>`
+- **示例**：
 
-#### 离散参数
+  ```text
+  *IDN?
+  → akaInstruments,PPR26,87043057485172710671FF49,FW 1.0.0
+  ```
 
-离散参数用于对包含有限个参数值的设置进行编程设定( 例如 `IMMediate`、`EXTernal` 或 `BUS`) 。就像命令关键字一样，它们也可以有短格式和长格式。可以使用大写或小写字母。查询响应始终返回全部为大写字母的短格式。例如对于显示屏设置，下面这条命令要求使用离散参数：
+### `*RST` — 复位
 
-```text
-VOLTage:MODE FIXed|STEP
-```
+- **命令形式**：`*RST`
+- **说明**：恢复设置区默认值（阻值、限值、步进、补偿模式、输出状态、协议），**不清除**校准数据。
+- **示例**：`*RST`
 
-#### 布尔参数
+### `*SAV` — 保存设置
 
-布尔参数代表一个真或假的二进制条件。对于假条件，仪器将接受 `OFF` 或 `0`。对于真条件，仪器将接受 `ON` 或 `1`。当查询布尔设置时，仪器始终返回 `0` 或 `1`。例如下面的命令要求使用布尔参数：
+- **命令形式**：`*SAV`
+- **说明**：将当前设置保存到非易失存储。
 
-```text
-OUTput OFF|0|ON|1
-```
+### `*CLS` — 清除状态
 
-#### ASCII 字符串参数
+- **命令形式**：`*CLS`
+- **说明**：清除状态寄存器与错误队列。
 
-字符串参数实际上可包含所有 ASCII 字符集。字符串必须以配对的引号开始和结尾；可以用单引号或双引号。引号分隔符也可以作为字符串的一部分，只需键入两次并且不在中间添加任何字符。例如下面这条命令使用了字符串参数：
+### `*ESE[?]` — 标准事件状态使能
 
-```text
-CALibrate:DATE "12/12/12"
-```
+- **命令形式**：`*ESE <NR1>` / `*ESE?`
+- **参数**：`<NR1>` 使能位掩码
+- **返回**：查询返回 `<NR1>`
 
-### 设备清除
+### `*ESR?` — 标准事件状态寄存器
 
-设备清除是一条 IEEE-488 低级总线消息，可用于将仪器返回到响应状态。不同的编程语言和 IEEE-488 接口卡通过其特有的命令提供对该功能的访问权限。当收到设备清除信息时，状态寄存器、错误队列以及所有配置状态都保持不变。
+- **命令形式**：`*ESR?`
+- **返回**：`<NR1>`
 
-设备清除执行以下操作：
+### `*OPC` / `*OPC?` — 操作完成
 
-- 如果正在测量，则其被中止。
-- 仪器返回到触发空闲状态。
-- 清除仪器的输入和输出缓冲区。
-- 仪器准备好接受新的命令字符串。
+- **命令形式**：`*OPC` / `*OPC?`
+- **返回**：`*OPC?` 返回 `1`
 
-!!!warning "注意"
-    ABORt 命令是中止仪器操作的建议方法。
+### `*SRE[?]` — 服务请求使能
 
-## 子系统命令
+- **命令形式**：`*SRE <NR1>` / `*SRE?`
+- **返回**：查询返回 `<NR1>`
 
-### 校准命令
+### `*STB?` — 状态字节
 
-校准命令用于校准仪器。
+- **命令形式**：`*STB?`
+- **返回**：`<NR1>`
 
-!!!warning "注意"
-    校准之前，请参见 [校准部分](#验证与校准)。校准不当可能降低精度和可靠性。
+### `*TST?` — 自检
 
-#### CALibrate:COUNt?
+- **命令形式**：`*TST?`
+- **返回**：`0` 表示通过
 
-返回已校准设备的次数。在以下情况下，计数会按一定的增量增大：保存校准数据 (包括日期) 、更改管理员密码、使用内部校准开关重置管理员密码或更新仪器固件。
+### `*WAI` — 等待
 
-| 参数 | 典型返回值 |
-| ---- | ---------- |
-| (无) | 校准计数   |
+- **命令形式**：`*WAI`
 
-示例：
-
-返回校准计数：
-
-```text
-CAL:COUN?
-```
-
-#### CALibrate:DATA <值>
-
-#### CALibrate:DATE <"日期">
-
-#### CALibrate:DATE?
-
-#### CALibrate:PASSword <密码>
-
-#### CALibrate:SAVE
-
-#### CALibrate:STATe 0|OFF|1|ON [,<密码>]
-
-#### CALibrate:STATe?
-
-#### CALibrate:LEVel <校准档位>
-
-### 状态命令
-
-状态命令可用于随时确定仪器的操作条件。仪器包含三组状态寄存器；操作、可疑和标准事件。操作和可疑状态组均由条件、使能和事件寄存器以及 NTR 和 PTR 滤波器组成。
-
-也可使用通用命令对仪器状态进行编程设定：本主题结尾处讨论的 `*CLS`、`*ESE`、`*ESR?`、`*OPC`、`*OPC?`、`*SRE`、`*STB?` 和 `*WAI`。通用命令控制其他状态功能，如服务请求使能寄存器和状态字节寄存器。 请参阅状态教程了解详细信息。
-
-#### STATus:OPERation[:EVENt]?
-
-#### STATus:OPERation:CONDition?
-
-#### STATus:OPERation:ENABle <值>
-
-#### STATus:OPERation:ENABle?
-
-#### STATus:OPERation:NTRansition <值>
-
-#### STATus:OPERation:NTRansition?
-
-#### STATus:OPERation:PTRansition <值>
-
-#### STATus:OPERation:PTRansition?
-
-#### STATus:PRESet
-
-#### STATus:QUEStionable[:EVENt]?
-
-#### STATus:QUEStionable:CONDition?
-
-#### STATus:QUEStionable:ENABle <值>
-
-#### STATus:QUEStionable:ENABle?
-
-#### STATus:QUEStionable:NTRansition <值>
-
-#### STATus:QUEStionable:NTRansition?
-
-#### STATus:QUEStionable:PTRansition <值>
-
-#### STATus:QUEStionable:PTRansition?
-
-#### *ESE <值>
-
-#### *ESE?
-
-#### *ESR?
-
-#### *OPC
-
-#### *OPC?
-
-#### *SRE <值>
-
-#### *SRE?
-
-#### *STB?
-
-#### *WAI
-
-## 命令摘要
-
-本章将归纳出用于设定程控电阻的 SCPI 命令，如果需要有关每一个命令更详尽的资料，请参阅后续独立章节。
-
-> 本手册使用如下方式来表示 SCPI 命令的语法：
->
-> 方括号（\[\]）表示选件的关键字或参数
->
-> 大括号（{}）中为命令字符串的参数
->
-> 尖括号（<>）表示必须以一个数值取代括弧中的参数，不可省略
+---
 
 ## SYSTem 子系统
 
-## CALibration 子系统
+### 通信协议 `SYSTem:PROTocol`
+
+- **命令形式**：`SYST:PROT {AT|SCPI}` / `SYST:PROT?`
+- **参数**：`AT`（USB CDC）、`SCPI`（USB TMC）
+- **返回**：查询返回 `AT` / `SCPI`
+- **说明**：设置后保存并**运行时切换**：设备断开/重连 USB 后重新枚举，不复位 MCU。
+
+**示例**
+
+```text
+SYST:PROT?
+→ SCPI
+```
+
+### 补偿模式 `SYSTem:COMPensate`
+
+- **命令形式**：`SYST:COMP {UNCAL|LIN|PREC}` / `SYST:COMP?`
+- **参数**：`UNCAL`（不补偿）、`LIN`/`LINear`（附近值）、`PREC`/`PRECise`（多档位最佳）
+- **返回**：查询返回 `UNCAL` / `LINEAR` / `PRECISE`
+- **错误**：非法离散值 → `-224`
+
+**示例**
+
+```text
+SYST:COMP PREC
+SYST:COMP?
+→ PRECISE
+```
+
+### 温度测量 `SYSTem:TEMPerature`
+
+- **命令形式**：
+  - `SYST:TEMP?` 当前温度
+  - `SYST:TEMP:AVER?` 平均温度
+  - `SYST:TEMP:MIN?` 最低温度
+  - `SYST:TEMP:MAX?` 最高温度
+  - `SYST:TEMP:RES` 清空统计
+- **返回**：查询返回 `<NR2>` 摄氏度
+- **说明**：统计自开机或上次 `SYST:TEMP:RES` 起累计。
+
+**示例**
+
+```text
+SYST:TEMP?
+→ 29.1
+
+SYST:TEMP:MAX?
+→ 30.2
+```
+
+### 设备信息 `SYSTem:INFOrmation`
+
+| 命令              | 参数 | 返回    | 说明                             |
+| ----------------- | ---- | ------- | -------------------------------- |
+| `SYST:INFO:SN?`   | 无   | `<str>` | 序列号（24 个大写十六进制字符）  |
+| `SYST:INFO:MOD?`  | 无   | `<str>` | 型号（`PPR26`）                  |
+| `SYST:INFO:MAN?`  | 无   | `<str>` | 生产日期 `YY-WW`                 |
+| `SYST:INFO:HVER?` | 无   | `<str>` | 硬件版本 `0`-`6`                 |
+| `SYST:INFO:FVER?` | 无   | `<str>` | 固件版本                         |
+| `SYST:INFO:POW?`  | 无   | `<NR1>` | 上电次数                         |
+| `SYST:INFO:TIME?` | 无   | `<NR1>` | 累计通电时间（分钟）             |
+
+**示例**
+
+```text
+SYST:INFO:MOD?
+→ PPR26
+```
+
+### 错误与版本
+
+- `SYST:ERR?` — 弹出并返回错误队列中最早的一条，格式 `<错误码>,"<错误信息>"`；无错误时返回 `0,"No error"`。
+- `SYST:ERR:COUN?` — 错误队列中的错误个数。
+- `SYST:VERS?` — SCPI 版本号。
+
+**示例**
+
+```text
+SYST:ERR?
+→ 0,"No error"
+```
+
+---
+
+## STATus 子系统
+
+状态寄存器用于查询仪器运行状态。命令形式如下：
+
+| 命令                              | 参数      | 返回    | 说明                |
+| --------------------------------- | --------- | ------- | ------------------- |
+| `STAT:OPER?`                      | 无        | `<NR1>` | 操作状态事件        |
+| `STAT:OPER:COND?`                 | 无        | `<NR1>` | 操作状态条件        |
+| `STAT:OPER:ENAB <NR1>` / `?`      | `<NR1>`   | `<NR1>` | 操作状态使能        |
+| `STAT:QUES?`                      | 无        | `<NR1>` | 可疑状态事件        |
+| `STAT:QUES:COND?`                 | 无        | `<NR1>` | 可疑状态条件        |
+| `STAT:QUES:ENAB <NR1>` / `?`      | `<NR1>`   | `<NR1>` | 可疑状态使能        |
+| `STAT:PRES`                       | 无        | 无      | 状态预置            |
+
+---
+
+## OUTPut 子系统
+
+### 输出状态 `OUTPut[:STATe]`
+
+- **命令形式**：`OUTP {NORM|SHOR|OPEN}` / `OUTP?`
+- **参数**：`NORM`/`NORMal`（电阻网络输出）、`SHOR`/`SHORt`（直接短路）、`OPEN`（开路）
+- **返回**：查询返回 `NORM` / `SHOR` / `OPEN`
+- **说明**：短路/开路**只能**通过本命令设置。
+- **错误**：非法离散值 → `-224`
+
+**示例**
+
+```text
+OUTP NORM
+OUTP?
+→ NORM
+```
+
+---
 
 ## RESIstance 子系统
 
-## OUTput 子系统
+### 设定阻值 `RESistance[:LEVel][:IMMediate][:AMPLitude]`
 
-    // 命令格式：SYSTem:TEMPerature[:IMMediate]?
-    // 命令参数：无
-    // 返回参数：<NR2></nr2> 当前测量温度，单位为摄氏度
-    // 功能描述：获取仪器内部温度传感器实时温度测量值
+- **命令形式**：`RES <NR1>|MIN|MAX|UP|DOWN` / `RES?`
+- **参数**：
+  - `<NR1>`：阻值（mΩ），范围 5 Ω ~ 4 MΩ
+  - `MIN` / `MAX`：当前允许范围的最小/最大值
+  - `UP` / `DOWN`：当前值 ± `RES:STEP`
+- **返回**：查询返回 `<NR1>` 当前设定值（mΩ）
+- **说明**：限值使能时，设定值须落在 `[RES:LIM:MIN, RES:LIM:MAX]`；越界返回错误且保持原值。
+- **错误**：越界 → `-902`
 
-    // 命令格式：SYSTem:TEMPerature:AVERage?
-    // 命令参数：无
-    // 返回参数：<NR2></nr2> 平均温度，单位为摄氏度
-    // 功能描述：获取仪器内部温度传感器测量的平均温度，从仪器开机或者 SYSTem:TEMPerature:RESet 命令执行之后开始统计
+**示例**
 
-    // 命令格式：SYSTem:TEMPerature:MINimum?
-    // 命令参数：无
-    // 返回参数：<NR2></nr2> 最低温度，单位为摄氏度
-    // 功能描述：获取仪器内部温度传感器测量的最低温度，从仪器开机或者 SYSTem:TEMPerature:RESet 命令执行之后开始统计
+```text
+RES 523000
+RES?
+→ 523000
 
-    // 命令格式：SYSTem:TEMPerature:MAXimum?
-    // 命令参数：无
-    // 返回参数：<NR2></nr2> 最高温度，单位为摄氏度
-    // 功能描述：获取仪器内部温度传感器测量的最高温度，从仪器开机或者 SYSTem:TEMPerature:RESet 命令执行之后开始统计
+RES UP
+RES?
+→ 533000
+```
 
-    // 命令格式：SYSTem:TEMPerature:RESet
-    // 命令参数：无
-    // 返回参数：无
-    // 功能描述：重新开始统计仪器内部温度传感器统计值
+### 步进值 `RESistance[:LEVel][:IMMediate]:STEP[:INCRement]`
 
-    // 命令格式：SYSTem:COMPensate:MODE<discrete></discrete>
-    // 命令参数：<discrete></discrete> {LINear | PRECise | UNCALibrate}
-    // 返回参数：无
-    // 功能描述：设置输出电阻校准数据补偿算法
+- **命令形式**：`RES:STEP <NR1>|MIN|MAX` / `RES:STEP?`
+- **参数**：`<NR1>` 步进值（mΩ）；`MIN` / `MAX` 取范围端点
+- **返回**：查询返回 `<NR1>`
+- **错误**：负值 → `-913`
 
-    // 命令格式：SYSTem:COMPensate:MODE?
-    // 命令参数：无
-    // 返回参数：<discrete></discrete> {LINear | PRECise | UNCALibrate}
-    // 功能描述：读取输出电阻校准数据补偿算法
+**示例**
 
-校准指令
+```text
+RES:STEP 10000
+RES:STEP?
+→ 10000
+```
 
-    // 命令格式：[:]CALibration:COUNt?
-    // 命令参数：无
-    // 返回参数：<NR1></nr1> 十进制整数 校准次数
-    // 功能描述：查询当前校准参数配置的校准次数
+### 阻值限值 `RESistance:LIMit:MINimum` / `MAXimum`
 
-    // 命令格式：[:]CALibration:TEMPerature?
-    // 功能描述：查询当前校准配置校准时的温度
-    // 命令参数：无
-    // 返回参数：<NR2></nr2> 摄氏度
+- **命令形式**：`RES:LIM:MIN <NR1>` / `RES:LIM:MIN?`；`RES:LIM:MAX <NR1>` / `RES:LIM:MAX?`
+- **参数**：`<NR1>` 限值（mΩ），范围 5 Ω ~ 4 MΩ
+- **返回**：查询返回 `<NR1>`
+- **错误**：`MIN > MAX` → `-900`；`MAX < MIN` → `-901`；超出硬件范围 → `-913`
 
-    // 命令格式：[:]CALibration:DATE<string></string>
-    // 功能描述：设置当前校准配置的校准日期
-    // 命令参数：<string></string> 校准日期字符串，最长 32 字节
-    // 返回参数：无
+**示例**
 
-    // 命令格式：[:]CALibration:DATE?
-    // 功能描述：查询当前校准配置的校准日期
-    // 命令参数：无
-    // 返回参数：<string></string> 校准日期字符串，最长 32 字节
+```text
+RES:LIM:MAX 1000000
+RES:LIM:MIN 5000
+RES:LIM:MIN?
+→ 5000
+```
 
-    // 命令格式：[:]CALibration:STRing<string></string>
-    // 功能描述：设置校准信息附带字符串（可用于存储校准人信息等）
-    // 命令参数：<string></string> 校准信息附带字符串，最长 32 字节
-    // 返回参数：无
+### 限值使能 `RESistance:LIMit[:STATe]`
 
-    // 命令格式：[:]CALibration:STRing?
-    // 功能描述：查询当前校准信息附带字符串
-    // 命令参数：无
-    // 返回参数：<string></string> 校准信息附带字符串，最长 32 字节
+- **命令形式**：`RES:LIM:STAT <bool>` / `RES:LIM:STAT?`
+- **参数**：`<bool>` `0`=关闭、`1`=使能
+- **返回**：查询返回 `0` / `1`
+- **说明**：使能后设定阻值必须落在限值内。
 
-    // 命令格式：[:]CALibration:SAVe<string></string>
-    // 功能描述：保存当前校准参数
-    // 命令参数：无
-    // 返回参数：无
+**示例**
 
-    // 命令格式：[:]CALibration:SETup
-    // 功能描述：进入校准模式
-    // 命令参数：无
-    // 返回参数：无
+```text
+RES:LIM:STAT 1
+RES:LIM:STAT?
+→ 1
+```
 
-    // 命令格式：[:]CALibration:SETup?
-    // 功能描述：检查仪器是否进入校准模式
-    // 命令参数：无
-    // 返回参数：<boolean></boolean> 是否进入校准模式
+### 继电器网络 `RESistance:NETWork`
 
-    // 命令格式：[:]CALibration[:STATe]<NR1></nr1>
-    // 功能描述：设置校准模式组态
-    // 命令参数：<NR1></nr1> 校准模式组态，范围 0-30
-    // 返回参数：无
+- **命令形式**：`RES:NETW <NR1>` / `RES:NETW?`
+- **参数**：`<NR1>` 26 位继电器位图，范围 `0` ~ `67108863`
+- **返回**：查询返回 `<NR1>`
+- **说明**：直接操作继电器网络，绕过补偿算法，并同步更新估测值；用于产测/校准。
+- **错误**：超出范围 → `-913`
 
-    // 命令格式：[:]CALibration[:STATe]?
-    // 功能描述：查询当前校准模式组态
-    // 命令参数：无
-    // 返回参数：<NR1></nr1> 校准模式组态，范围 0-30
+**示例**
 
-    // 命令格式：[:]CALibration:VALue<NR1></nr1>
-    // 功能描述：设置当前校准模式组态下的校准数据
-    // 命令参数：<NR1></nr1> 校准数据（电阻阻值，单位 mOhm）
-    // 返回参数：无
+```text
+RES:NETW 0
+RES:NETW?
+→ 0
+```
 
-    // 命令格式：[:]CALibration:VALue?
-    // 功能描述：查询当前校准模式组态下的校准数据
-    // 命令参数：无
-    // 返回参数：<NR1></nr1> 校准数据（电阻阻值，单位 mOhm）
+---
 
-输出指令：
+## 校准命令（用户校准）
 
-    // 命令格式：[:]OUTput[:STATe]<discrete></discrete>
-    // 命令参数：<discrete></discrete> {SHORT | OPEN | NORMal}
-    // 返回参数：无
-    // 功能描述：设置程控电阻输出状态：短路 | 开路 | 电阻网络输出
+PPR26 使用一套**用户校准数据**修正输出精度，用户可自行校准，校准数据独立保存。
 
-    // 命令格式：[:]OUTput[:STATe]?
-    // 命令参数：无
-    // 返回参数：<discrete></discrete> {SHORT | OPEN | NORMal}
-    // 功能描述：获取当前程控电阻输出状态
+!!! warning "注意"
+    校准不当会降低输出精度与可靠性，请在具备参考标准的情况下进行。设备另有一套仅供出厂使用的校准数据，不对外开放，也不会被用户校准命令修改。
 
-电阻控制指令：
+### 校准使能 `CALibration:ENABle`
 
-    // 命令格式：[:Source:]RESIstance:LIMit:MINimum<NR1></nr1>
-    // 命令参数：<NR1></nr1> 设置输出电阻最小值限制，范围为 [5 Ohm, 4 MOhm]
-    // 返回参数：无
-    // 功能描述：设置输出电阻最小值限制
+- **命令形式**：`CAL:ENAB <bool>` / `CAL:ENAB?`
+- **参数**：`<bool>` `0`=退出、`1`=进入校准模式
+- **返回**：查询返回 `0` / `1`
+- **说明**：写入校准数据的前置条件，**不持久化**。
 
-    // 命令格式：[:Source:]RESIstance:LIMit:MINimum?
-    // 命令参数：无
-    // 返回参数：<NR1></nr1> 设置输出电阻最小值限制
-    // 功能描述：查询输出电阻最小值限制
+**示例**
 
-    // 命令格式：[:Source:]RESIstance:LIMit:MAXimum<NR1></nr1>
-    // 命令参数：<NR1></nr1> 设置输出电阻最大值限制，范围为 [5 Ohm, 4 MOhm]
-    // 返回参数：无
-    // 功能描述：设置输出电阻最大值限制
+```text
+CAL:ENAB 1
+CAL:ENAB?
+→ 1
+```
 
-    // 命令格式：[:Source:]RESIstance:LIMit:MAXimum?
-    // 命令参数：无
-    // 返回参数：<NR1></nr1> 设置输出电阻最大值限制
-    // 功能描述：查询输出电阻最大值限制
+### 用户密码 `CALibration:USER:PASSword`
 
-    // 命令格式：[:Source:]RESIstance:LIMit[:STATe]<boolean></boolean>
-    // 命令参数：<boolean></boolean> {0|1|ON|OFF} 输出电阻限制使能
-    // 返回参数：无
-    // 功能描述：设置输出电阻限制使能模式
+- **命令形式**：`CAL:USER:PASS <str>` / `CAL:USER:PASS?`
+- **参数**：`<str>` 密码，最长 64 字节；空字符串表示清除（默认解锁）
+- **返回**：查询返回 `0` / `1`（是否已设密码，不返回明文）
+- **错误**：超长 → `-916`
 
-    // 命令格式：[:Source:]RESIstance:LIMit:[:STATe]?
-    // 命令参数：无
-    // 返回参数：<boolean></boolean> {0|1} 输出电阻限制使能状态
-    // 功能描述：查询输出电阻限制使能模式
+**示例**
 
-    // 命令格式：[:SOURce:]RESIstance[:LEVel][:IMMediate][:AMPLitude]<NR1></nr1>
-    // 命令参数：<NR1></nr1> {电阻值|MINimum|MAXimum|UP|DOWN} 设置电阻阻值，单位欧姆
-    // 返回参数：无
-    // 功能描述：设置程控电阻设定的电阻值，范围为 []，可以使用 MIN 和 MAX 来作为电阻设定的参数
-    //          可以使用 UP 和 DOWN 在当前电阻设定的基础上进行增大或者减小
-    //          步进值需要先使用 RESI:STEP 命令进行设置
-    //          如果变化后的值超出了范围，将返回一个超出数据范围的错误信息
+```text
+CAL:USER:PASS "1234"
+CAL:USER:PASS?
+→ 1
+```
 
-    // 命令格式：[:SOURce:]RESIstance[:LEVel][:IMMediate][:AMPLitude]?
-    // 命令参数：
-    // 返回参数：<NR1></nr1> 当前设定输出电阻阻值，单位欧姆
-    // 功能描述：查询当前设定输出电阻阻值
+### 解锁 `CALibration:USER:UNLock`
 
-    // 命令格式：[:SOURce:]RESIstance[:LEVel][:IMMediate]:STEP[:INCRement]<NR1></nr1>
-	// 命令参数：<NR1></nr1> {电阻值|MINimum|MAXimum} 输出电阻步进增量值，单位欧姆
-    // 返回参数：无
-    // 功能描述：设置输出电阻步进增量值
+- **命令形式**：`CAL:USER:UNL <str>`
+- **参数**：`<str>` 用户密码；密码为空时可直接解锁
+- **错误**：密码错误 → `-915`
 
-    // 命令格式：[:SOURce:]RESIstance[:LEVel][:IMMediate]:STEP[:INCRement]?
-	// 命令参数：无
-    // 返回参数：<NR1></nr1> 输出电阻步进增量值，单位欧姆
-    // 功能描述：查询输出电阻步进增量值
+**示例**
 
-错误定义
+```text
+CAL:USER:UNL "1234"
+```
 
-    // 标准SCPI错误码 (-100 ~ -199: 命令错误)
-    // -100 Command error
-    // -101 Invalid character
-    // -102 Syntax error
-    // -103 Invalid separator
-    // -104 Data type error
-    // -108 Parameter not allowed
-    // -109 Missing parameter
-    // -113 Undefined header
-    // -121 Invalid character in number
-    // -124 Too many digits
-    // -131 Invalid suffix
-    // -141 Invalid character data
-    // -144 Character data too long
-    // -151 Invalid string data
-    // -161 Invalid block data
-    // -171 Invalid expression
+### 锁定 `CALibration:USER:LOCK`
 
-    // 标准SCPI错误码 (-200 ~ -299: 执行错误)
-    // -201 Invalid while in local
-    // -202 Settings lost due to RTL
-    // -221 Settings conflict
-    // -222 Data out of range
-    // -224 Illegal parameter value
-    // -230 Data corrupt or stale
-    // -240 Hardware error
-    // -241 Hardware missing
+- **命令形式**：`CAL:USER:LOCK <bool>` / `CAL:USER:LOCK?`
+- **参数**：`<bool>` `1`=锁定、`0`=解锁
+- **返回**：查询返回 `0` / `1`
 
-    // 标准SCPI错误码 (-300 ~ -399: 设备特定错误)
-    // -300 Device specific error
+**示例**
 
-    // 自定义错误码 (-900 ~ -999: 设备特定错误)
-    // 错误码: -900
-    // 错误信息: Resistance limit minimum exceeds maximum
-    // 说明: 电阻最小值限制大于最大值
+```text
+CAL:USER:LOCK 1
+CAL:USER:LOCK?
+→ 1
+```
 
-    // 错误码: -901
-    // 错误信息: Resistance limit maximum below minimum
-    // 说明: 电阻最大值限制小于最小值
+### 校准档位 `CALibration:USER:GEAR`
 
-    // 错误码: -902
-    // 错误信息: Resistance value out of limit range
-    // 说明: 电阻值超出限制范围
+- **命令形式**：`CAL:USER:GEAR <NR1>` / `CAL:USER:GEAR?`
+- **参数**：`<NR1>`，范围 `0`..`27`（见下表）；设置时同时应用对应继电器
+- **返回**：查询返回 `<NR1>`
+- **错误**：超出范围 → `-905`
 
-    // 错误码: -903
-    // 错误信息: Resistance step size too large
-    // 说明: 电阻步进值过大
+| 档位      | 含义                       |
+| --------- | -------------------------- |
+| `0`..`25` | 单路电阻（闭合对应继电器） |
+| `26`      | 串联短路                   |
+| `27`      | 直接短路                   |
 
-    // 错误码: -904
-    // 错误信息: Calibration mode not set
-    // 说明: 校准模式未设置
+**示例**
 
-    // 错误码: -905
-    // 错误信息: Calibration mode invalid
-    // 说明: 校准模式无效
+```text
+CAL:USER:GEAR 0
+CAL:USER:GEAR?
+→ 0
+```
 
-    // 错误码: -906
-    // 错误信息: Calibration data invalid
-    // 说明: 校准数据无效
+### 档位阻值 `CALibration:USER:VALue`
 
-    // 错误码: -907
-    // 错误信息: Calibration not in setup mode
-    // 说明: 校准未在设置模式下
+- **命令形式**：`CAL:USER:VAL <NR1>` / `CAL:USER:VAL?`
+- **参数**：`<NR1>` 当前档位的实测阻值（mΩ）
+- **返回**：查询返回 `<NR1>`
+- **说明**：受写保护约束（需 `CAL:ENAB 1` 且未锁定）。
 
-    // 错误码: -908
-    // 错误信息: Calibration save failed
-    // 说明: 校准保存失败
+**示例**
 
-    // 错误码: -909
-    // 错误信息: Compensation mode invalid
-    // 说明: 补偿模式无效
+```text
+CAL:USER:VAL 5230
+CAL:USER:VAL?
+→ 5230
+```
 
-    // 错误码: -910
-    // 错误信息: Output mode invalid
-    // 说明: 输出模式无效
+### 校准次数 `CALibration:USER:COUNt?`
 
-    // 错误码: -911
-    // 错误信息: Temperature sensor error
-    // 说明: 温度传感器错误
+- **命令形式**：`CAL:USER:COUN?`
+- **返回**：`<NR1>` 校准次数；每次 `CAL:USER:SAVE` 加 1。
 
-    // 错误码: -912
-    // 错误信息: String parameter too long
-    // 说明: 字符串参数过长
+**示例**
 
-    // 错误码: -913
-    // 错误信息: Value out of allowed range
-    // 说明: 值超出允许范围
+```text
+CAL:USER:COUN?
+→ 3
+```
 
-    // 错误码: -914
-    // 错误信息: Calibration data corrupted
-    // 说明: 校准数据损坏
+### 校准日期 `CALibration:USER:DATE`
+
+- **命令形式**：`CAL:USER:DATE <str>` / `CAL:USER:DATE?`
+- **参数**：`<str>` 日期字符串，最长 64 字节；空字符串表示清除
+- **返回**：查询返回 `<str>`
+- **错误**：超长 → `-912`
+
+**示例**
+
+```text
+CAL:USER:DATE "2026-09-29"
+CAL:USER:DATE?
+→ "2026-09-29"
+```
+
+### 校准备注 `CALibration:USER:STRing`
+
+- **命令形式**：`CAL:USER:STR <str>` / `CAL:USER:STR?`
+- **参数**：`<str>` 备注字符串，最长 64 字节；空字符串表示清除
+- **返回**：查询返回 `<str>`
+- **错误**：超长 → `-912`
+
+**示例**
+
+```text
+CAL:USER:STR "user-cal"
+CAL:USER:STR?
+→ "user-cal"
+```
+
+### 校准时温度 `CALibration:USER:TEMPerature?`
+
+- **命令形式**：`CAL:USER:TEMP?`
+- **返回**：`<NR2>` 摄氏度，为最近一次 `SAVE` 时记录的温度。
+
+**示例**
+
+```text
+CAL:USER:TEMP?
+→ 29.5
+```
+
+### 保存校准数据 `CALibration:USER:SAVe`
+
+- **命令形式**：`CAL:USER:SAVE`
+- **说明**：保存当前档位校准数据，校准次数 +1、记录温度并落盘。受写保护约束（需 `CAL:ENAB 1` 且未锁定）。
+- **错误**：未使能或已锁定 → `-907`；保存失败 → `-908`
+
+**示例**
+
+```text
+CAL:USER:SAVE
+```
+
+---
+
+## 错误码
+
+命令错误或执行错误会进入错误队列，可用 `SYST:ERR?` 依次读出。
+
+标准错误（节选）：
+
+| 码   | 含义                    |
+| ---- | ----------------------- |
+| -109 | Missing parameter       |
+| -113 | Undefined header        |
+| -222 | Data out of range       |
+| -224 | Illegal parameter value |
+| -363 | Input buffer overrun    |
+
+设备自定义错误：
+
+| 码   | 含义                                     |
+| ---- | ---------------------------------------- |
+| -900 | Resistance limit minimum exceeds maximum |
+| -901 | Resistance limit maximum below minimum   |
+| -902 | Resistance value out of limit range      |
+| -903 | Resistance step size too large           |
+| -904 | Calibration mode not set                 |
+| -905 | Calibration mode invalid                 |
+| -906 | Calibration data invalid                 |
+| -907 | Calibration locked or not in setup mode  |
+| -908 | Calibration save failed                  |
+| -909 | Compensation mode invalid                |
+| -910 | Output mode invalid                      |
+| -911 | Temperature sensor error                 |
+| -912 | String parameter too long                |
+| -913 | Value out of allowed range               |
+| -914 | Calibration data corrupted               |
+| -915 | Password incorrect                       |
+| -916 | Password too long                        |
+
+---
+
+## 典型流程示例
+
+```text
+*IDN?
+SYST:COMP PREC
+RES:LIM:MAX 1000000
+RES:LIM:MIN 5000
+RES:LIM:STAT 1
+RES 523000
+RES?
+OUTP NORM
+SYST:INFO:SN?
+SYST:TEMP?
+
+CAL:ENAB 1
+CAL:USER:UNL "1234"
+CAL:USER:GEAR 0
+CAL:USER:VAL 5230
+CAL:USER:DATE "2026-09-29"
+CAL:USER:STR "user-cal"
+CAL:USER:SAVE
+CAL:ENAB 0
+```
