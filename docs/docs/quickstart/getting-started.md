@@ -29,4 +29,11 @@
 
 设备后面板从左到右分别为 USB-B 供电与数据接口，电源指示灯，DFU 模式按键。
 
-使用
+## 开始使用
+
+将 PPR26 连接 PC 后，可通过以下方式开始使用：
+
+- **网页版串口上位机**（无需安装，需 AT 模式）：见[串口上位机（网页版）](../software/webui_serial.md)。
+- **Python 编程**：见 [AT Python 编程示例](../reference/python_at.md) 与 [SCPI Python 编程示例](../reference/python_scpi.md)。
+
+通信模式的说明与切换见[通信模式切换](modeswitch.md)；固件升级见[固件升级](fwupgrade.md)。
