@@ -1,0 +1,87 @@
+site_name: PPR26 文档中心
+site_url: https://akkako.github.io/PPR26_Docs/docs/
+repo_url: https://github.com/akkako/PPR26_Docs
+repo_name: GitHub
+
+theme:
+  name: material
+  language: zh
+  logo: assets/resistor_box_logo.svg
+  favicon: assets/resistor_box_logo.svg
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: 切换至深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: 切换至浅色模式
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+plugins:
+  - search
+  - exporter:
+      formats:
+        pdf:
+          enabled: !ENV [MKDOCS_EXPORTER_PDF, false]
+          concurrency: 4
+          aggregator:
+            enabled: !ENV [MKDOCS_EXPORTER_PDF, false]
+            output: PPR26_manual.pdf
+
+extra:
+  social:
+    - icon: fontawesome/brands/github-square
+      link: https://github.com/akkako/PPR26_Docs
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - tables
+  - attr_list
+  - md_in_html
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+
+nav:
+  - 首页: index.md
+  - 快速开始:
+      - 概览: quickstart/index.md
+      - 开箱与连接: quickstart/getting-started.md
+      - 通信模式切换: quickstart/modeswitch.md
+      - 固件升级: quickstart/fwupgrade.md
+  - 参考文档:
+      - 概览: reference/index.md
+      - AT 命令参考: reference/at.md
+      - SCPI 命令参考: reference/scpi.md
+      - AT Python 示例: reference/python_at.md
+      - SCPI Python 示例: reference/python_scpi.md
+      - 脚本参考:
+          - 概览: reference/scripts/index.md
+          - 校准脚本: reference/scripts/calibration.md
+          - 测试脚本: reference/scripts/test.md
+  - 上位机:
+      - 概览: software/index.md
+      - 上位机使用指南: software/getstarted.md
+      - 串口上位机（网页版）: software/webui_serial.md
+      - 工具下载与使用: software/downloads.md
+  - 设备规格: datasheet/index.md
