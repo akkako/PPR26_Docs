@@ -7,11 +7,23 @@ PPR26 is a precision programmable resistance box that outputs programmable resis
 | Item | Description |
 | ---- | ---- |
 | Output range | 5 Ω ~ 4 MΩ |
-| Setpoint resolution | 1 mΩ |
+| Setpoint resolution | 1 mΩ (numeric granularity of the set/read-back interface) |
+| Step size | Default 1 Ω (1000 mΩ), configurable, retained across power cycles |
 | Output mode | Resistance network output (NORM), open, short |
 | Power-on default | Open + default setpoint 5 Ω |
 | Compensation mode | Uncalibrated (UNCAL) / Nearby (NEARBY) / Precise (PRECISE) (default: Precise) |
 | Retained across power cycles | Step size, limits and enable flag, compensation mode, communication protocol, and dataset selection are saved; **the setpoint and output state are not saved** |
+
+!!! note "Setpoint resolution is not the same as the values the device can actually produce"
+    **A setpoint resolution of 1 mΩ** describes the numeric granularity of the interface when writing or
+    reading back a resistance; the values the device can **actually output form a discrete set**, produced
+    as a subset sum of the 26 resistors in the relay network — not a uniform 1 mΩ grid. Adjacent achievable
+    values are about 1 Ω apart at the low end (the smallest increment is 0.956 Ω, which is where the default
+    1 Ω step size comes from) and far closer at the high end. A setpoint that is not on the grid makes the
+    device output the **nearest achievable value**, which can be read back with `AT+RES.PV?`; the distance
+    from a setpoint to the nearest achievable value stays within about ±0.5 Ω across the whole range (worst
+    at the low end), so the larger *relative* errors seen there are quantisation steps rather than a fault.
+    See the [accuracy test script](../reference/scripts/accuracy.md) for details.
 
 ## Communication Interfaces
 
