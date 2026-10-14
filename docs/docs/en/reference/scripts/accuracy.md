@@ -11,10 +11,10 @@ respect to the device: it never touches the calibration store.
 | Device | PPR26 in **AT mode** (USB CDC virtual serial port) |
 | Reference meter | 6½-digit or better DMM, e.g. HP / Agilent 34401A / 34410A / 34411A |
 | Wiring | 4-wire: DMM 4W terminals to the PPR26 front-panel Sense / Output terminals (polarity does not matter) |
-| Acceptance limit | Factory specification **±(0.05% × setpoint + 1 Ω)**, see [Specifications](../../datasheet/index.md) |
+| Acceptance limit | Factory specification **±(0.1% × setpoint + 1 Ω)**, see [Specifications](../../datasheet/index.md) |
 
 !!! warning "The reference meter sets the ceiling on what you can measure"
-    To verify a limit like ±(0.05% + 1 Ω), the reference meter itself must be clearly better than the
+    To verify a limit like ±(0.1% + 1 Ω), the reference meter itself must be clearly better than the
     limit under test (a third of it or less is a common rule). A 34410A is specified for
     0.0035% (reading) + 0.0009% (range) on 4-wire resistance over one year, which leaves plenty of margin.
 
@@ -571,10 +571,10 @@ settings, timestamp), followed by the data table:
 ## Reading the result
 
 Plot the CSV as setpoint (log X) against relative error (Y) and overlay the acceptance limit; a glance then
-shows whether the unit passes. The limit is **a curve**: `±(0.05% × setpoint + 1 Ω)` converts to the Y-axis
-percentage as `0.05 + 0.1 × 1000/x` — at 10 Ω the absolute term is worth 10%, at 1 kΩ only 0.1%, and above
-that the percentage term dominates and the curve flattens to ±0.05%. **The low end is judged on absolute
-accuracy, the high end on relative accuracy** — one curve says both.
+shows whether the unit passes. The limit is **a curve**: `±(0.1% × setpoint + 1 Ω)` converts to the Y-axis
+percentage as `0.1 + 100/x` — at 10 Ω the absolute term is worth 10% (10.1% in total), at 1 kΩ it is 0.1%
+(0.2% in total), and above that the percentage term dominates and the curve flattens to ±0.1%.
+**The low end is judged on absolute accuracy, the high end on relative accuracy** — one curve says both.
 
 The example data in this documentation (see the factory report example in
 [Specifications](../../datasheet/index.md)) can be re-plotted directly:
@@ -599,10 +599,10 @@ ax.set_xscale("log")
 ax.set_yscale("symlog", linthresh=0.001)      # the error crosses zero, so a signed log axis
 ax.set_ylim(-10, 10)                          # fixed ±10% window, comparable across units
 ax.axhline(0, color="k", lw=0.8)
-ax.plot(x, y, "o-", ms=3, lw=1, label="measured")
-for sign in (1, -1):                          # acceptance limit: ±(0.05% x setpoint + 1 ohm)
-    ax.plot(x, [sign * (0.05 + 1000.0 / v) for v in x], "r--", lw=1,
-            label="tolerance ±(0.05% + 1 Ω)" if sign > 0 else None)
+ax.plot(x, y, "o", ms=4, label="measured")
+for sign in (1, -1):                          # acceptance limit: ±(0.1% x setpoint + 1 ohm)
+    ax.plot(x, [sign * (0.1 + 100.0 / v) for v in x], "r--", lw=1,
+            label="tolerance ±(0.1% + 1 Ω)" if sign > 0 else None)
 ax.set_xlabel("Setpoint (ohm, log scale)")
 ax.set_ylabel("Relative error (%)")
 ax.legend()
