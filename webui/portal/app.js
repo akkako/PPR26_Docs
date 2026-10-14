@@ -16,6 +16,8 @@ const I18N = {
         entry_bootloader_desc: "通过 WebUSB 连接设备并升级固件",
         entry_serial: "AT 串口上位机",
         entry_serial_desc: "通过 WebSerial 在浏览器中控制 PPR26 设备（AT 模式）",
+        entry_ntcsim: "NTC 模拟器",
+        entry_ntcsim_desc: "把 PPR26 当作热敏电阻：按 B 值法 / Steinhart-Hart / CSV 数据把温度换算成阻值并下发",
     },
     en: {
         toggle_theme: "Toggle Theme",
@@ -29,6 +31,8 @@ const I18N = {
         entry_bootloader_desc: "Connect via WebUSB and upgrade firmware",
         entry_serial: "AT Serial Console",
         entry_serial_desc: "Control PPR26 in the browser over WebSerial (AT mode)",
+        entry_ntcsim: "NTC Simulator",
+        entry_ntcsim_desc: "Use PPR26 as a thermistor: convert temperature to resistance (B-value / Steinhart-Hart / CSV) and apply it",
     }
 };
 
@@ -37,6 +41,32 @@ const DOCS_ENTRY = {
     zh: "docs/zh_CN/",
     en: "docs/en/",
 };
+
+/**
+ * 本地调试时的路径适配。
+ *
+ * 发布布局：入口页在站点根，工具在 /serial/、/ntcsim/ 等，文档在 /docs/<lang>/；
+ * 仓库布局：从仓库根起静态服务时，入口页在 /webui/portal/，工具在 /webui/<tool>/，
+ *           文档在 /docs/site/<lang>/（本地 mkdocs build 的输出）。
+ *
+ * 这里按当前路径判断所处布局，把相对链接补成正确的一级；两种访问方式都能点通。
+ */
+const IN_REPO_LAYOUT = location.pathname.includes("/webui/portal");
+const DOCS_ENTRY_LOCAL = {
+    zh: "../../docs/site/zh_CN/",
+    en: "../../docs/site/en/",
+};
+
+/** 工具卡片：发布布局下是相对同级目录，仓库布局下是上一级目录 */
+function resolveToolLinks() {
+    const prefix = IN_REPO_LAYOUT ? "../" : "";
+    document.querySelectorAll(".entry-item[href]").forEach(el => {
+        const href = el.getAttribute("href");
+        if (/^(bootloader|serial|ntcsim)\/$/.test(href)) {
+            el.setAttribute("href", prefix + href);
+        }
+    });
+}
 
 let currentLang = "zh";
 
@@ -54,7 +84,10 @@ function applyLang() {
     const langBtn = document.getElementById("langToggle");
     if (langBtn) langBtn.textContent = currentLang === "zh" ? "EN" : "中";
     const docsEntry = document.getElementById("docsEntry");
-    if (docsEntry) docsEntry.setAttribute("href", DOCS_ENTRY[currentLang]);
+    if (docsEntry) {
+        const table = IN_REPO_LAYOUT ? DOCS_ENTRY_LOCAL : DOCS_ENTRY;
+        docsEntry.setAttribute("href", table[currentLang]);
+    }
     document.documentElement.setAttribute("lang", currentLang);
 }
 
@@ -96,4 +129,5 @@ document.getElementById("themeToggle").addEventListener("click", toggleTheme);
 document.getElementById("langToggle").addEventListener("click", toggleLang);
 
 initTheme();
+resolveToolLinks();
 initLang();

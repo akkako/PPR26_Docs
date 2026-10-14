@@ -39,9 +39,9 @@ jobs:
 
       - name: Assemble static site
         run: |
-          # 组装发布目录：入口页在根目录，文档放 /docs/，工具放 /bootloader/ 与 /serial/
+          # 组装发布目录：入口页在根目录，文档放 /docs/，工具放 /bootloader/、/serial/ 与 /ntcsim/
           rm -rf site
-          mkdir -p site/docs site/bootloader site/serial
+          mkdir -p site/docs site/bootloader site/serial site/ntcsim
 
           # 1) 两份 MkDocs 构建产物（docs/site/zh_CN、docs/site/en）-> /docs/
           cp -r docs/site/. site/docs/
@@ -58,8 +58,11 @@ jobs:
           # 5) 串口上位机（WebSerial）-> /serial/
           cp -r webui/serial/. site/serial/
 
-          # 6) 固件（VERSION + 发布镜像）-> /firmware/
-          #    升级工具与串口上位机用 ../firmware/VERSION 判断最新版本：
+          # 6) NTC 模拟器（WebSerial + 本地 NTC 算法模块）-> /ntcsim/
+          cp -r webui/ntcsim/. site/ntcsim/
+
+          # 7) 固件（VERSION + 发布镜像）-> /firmware/
+          #    升级工具、串口上位机与 NTC 模拟器用 ../firmware/VERSION 判断最新版本：
           #    第一行版本号，第二行固件文件名（与 VERSION 同目录）。
           mkdir -p site/firmware
           cp -r firmware/. site/firmware/

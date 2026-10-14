@@ -9,9 +9,11 @@ PPR26 provides two kinds of host tool, web-based and Python, for device control 
 | PPR26 Tools | <https://akkako.github.io/PPR26_Docs/> | Entry point for all online tools |
 | Bootloader Upgrade Tool | <https://akkako.github.io/PPR26_Docs/bootloader/> | Upgrade firmware over WebUSB |
 | Serial Console | <https://akkako.github.io/PPR26_Docs/serial/> | Set resistance, limits, and output state (requires AT mode) |
+| NTC Simulator | <https://akkako.github.io/PPR26_Docs/ntcsim/> | Convert temperature to resistance with an NTC model and apply it (B-value / SH / CSV) |
 
 - Requires Chrome / Edge 109+.
-- For how to use the serial console, see [Serial Console (Web)](webui_serial.md).
+- For how to use the serial console, see [Serial Console (Web)](webui_serial.md);
+  for the NTC simulator, see [NTC Simulator (Web)](webui_ntcsim.md).
 
 ## Python Tools
 
@@ -23,6 +25,7 @@ For device information queries and firmware upgrade, suitable for scripting / ba
 | ---- | ---- |
 | [Host Tools Guide](getstarted.md) | Overview of the web-based and Python host tools |
 | [Serial Console (Web)](webui_serial.md) | Set resistance, limits, and output state in the browser |
+| [NTC Simulator (Web)](webui_ntcsim.md) | Use PPR26 as a thermistor: temperature/resistance conversion, stepping and curve |
 | [Tool Downloads and Usage](downloads.md) | Python tool downloads, commands, and upgrade steps |
 
 !!! tip "Related documentation"

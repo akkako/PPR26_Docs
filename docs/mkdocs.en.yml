@@ -55,5 +55,6 @@ nav:
       - Overview: software/index.md
       - Host Tools Guide: software/getstarted.md
       - Serial Console (Web): software/webui_serial.md
+      - NTC Simulator (Web): software/webui_ntcsim.md
       - Tool Downloads and Usage: software/downloads.md
   - Specifications: datasheet/index.md

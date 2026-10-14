@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>PPR26 NTC Simulator</title>
+    <link rel="icon" type="image/svg+xml" href="resistor_box_logo.svg">
+    <!-- Cache-busting: bump the version whenever app.js/style.css/ntc.mjs changes. -->
+    <link rel="stylesheet" href="style.css?v=ntcsim-1">
+</head>
+<body>
+    <div class="container wide">
+        <header class="header">
+            <div class="brand">
+                <img class="brand-icon" src="resistor_box_logo.svg" alt="PPR26 logo">
+                <h1 data-i18n="page_title">PPR26 NTC 模拟器</h1>
+            </div>
+            <div class="header-actions">
+                <a class="icon-btn" href="../" data-i18n-title="btn_back">←</a>
+                <button id="themeToggle" class="icon-btn" data-i18n-title="toggle_theme">◐</button>
+                <button id="langToggle" class="icon-btn" data-i18n-title="toggle_lang">EN</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- 连接操作与设备信息同一行（宽度不足时自动换行） -->
+            <section class="card info-card">
+                <div class="info-line">
+                    <button id="btnConnect" class="btn primary" data-i18n="btn_connect">连接设备</button>
+                    <button id="btnDisconnect" class="btn" data-i18n="btn_disconnect" disabled>断开</button>
+                    <span id="connStatus" class="status">未连接</span>
+                    <div id="infoStrip" class="info-strip"></div>
+                </div>
+            </section>
+
+            <div class="layout">
+                <!-- 左栏：NTC 模型（三选一）+ 设备限值窗口 -->
+                <div class="col">
+                <section class="card">
+                    <h2 data-i18n="title_model">NTC 模型</h2>
+                    <div class="segmented mode-tabs" id="modelTabs" role="group">
+                        <button class="seg-btn" data-mode="beta" data-i18n="mode_beta">B 值法</button>
+                        <button class="seg-btn" data-mode="sh" data-i18n="mode_sh">Steinhart-Hart</button>
+                        <button class="seg-btn" data-mode="csv" data-i18n="mode_csv">导入 CSV</button>
+                    </div>
+
+                    <!-- B 值法：三种子方式，只显示所选一种 -->
+                    <div id="panelBeta" class="panel">
+                        <div class="segmented sub-tabs" id="betaTabs" role="group">
+                            <button class="seg-btn small" data-sub="direct" data-i18n="beta_tab_direct">直填 R25/B</button>
+                            <button class="seg-btn small" data-sub="two" data-i18n="beta_tab_two">两点反算</button>
+                            <button class="seg-btn small" data-sub="lsq" data-i18n="beta_tab_lsq">多点拟合</button>
+                        </div>
+                        <div class="sub-panel" id="betaDirect">
+                            <div class="field-row">
+                                <label class="field">
+                                    <span data-i18n="label_r25">R25（Ω）</span>
+                                    <input type="text" id="inR25" inputmode="decimal" value="10000" autocomplete="off" spellcheck="false">
+                                </label>
+                                <label class="field">
+                                    <span data-i18n="label_b_value">B（K）</span>
+                                    <input type="text" id="inBeta" inputmode="decimal" value="3435" autocomplete="off" spellcheck="false">
+                                </label>
+                            </div>
+                        </div>
+                        <div class="sub-panel" id="betaTwo" hidden>
+                            <div class="field-row">
+                                <label class="field">
+                                    <span data-i18n="label_t1">T1（℃）</span>
+                                    <input type="text" id="inT1" inputmode="decimal" value="25" autocomplete="off" spellcheck="false">
+                                </label>
+                                <label class="field">
+                                    <span data-i18n="label_r1">R1（Ω）</span>
+                                    <input type="text" id="inR1" inputmode="decimal" value="10000" autocomplete="off" spellcheck="false">
+                                </label>
+                            </div>
+                            <div class="field-row">
+                                <label class="field">
+                                    <span data-i18n="label_t2">T2（℃）</span>
+                                    <input type="text" id="inT2" inputmode="decimal" value="85" autocomplete="off" spellcheck="false">
+                                </label>
+                                <label class="field">
+                                    <span data-i18n="label_r2">R2（Ω）</span>
+                                    <input type="text" id="inR2" inputmode="decimal" value="1451.3" autocomplete="off" spellcheck="false">
+                                </label>
+                            </div>
+                        </div>
+                        <div class="sub-panel" id="betaLsq" hidden>
+                            <p class="hint" data-i18n="beta_lsq_hint">填入 2 个以上标定点（推荐 5 个以上）做最小二乘拟合。</p>
+                            <div id="betaPoints"></div>
+                        </div>
+                    </div>
+
+                    <!-- Steinhart-Hart：同样两种子方式（直填系数 / 标定点拟合），只显示所选一种 -->
+                    <div id="panelSh" class="panel" hidden>
+                        <div class="segmented sub-tabs" id="shTabs" role="group">
+                            <button class="seg-btn small" data-sub="direct" data-i18n="sh_tab_direct">直填 A/B/C</button>
+                            <button class="seg-btn small" data-sub="points" data-i18n="sh_tab_points">标定点拟合</button>
+                        </div>
+                        <div class="sub-panel" id="shDirect">
+                            <div class="field-row">
+                                <label class="field" data-i18n-title="title_sh_a">
+                                    <span data-i18n="label_coeff_a">A</span>
+                                    <input type="text" id="inShA" inputmode="decimal" value="0.0007081245214315457" autocomplete="off" spellcheck="false">
+                                </label>
+                                <label class="field" data-i18n-title="title_sh_b">
+                                    <span data-i18n="label_coeff_b">B</span>
+                                    <input type="text" id="inShB" inputmode="decimal" value="0.00028455941915677839" autocomplete="off" spellcheck="false">
+                                </label>
+                                <label class="field" data-i18n-title="title_sh_c">
+                                    <span data-i18n="label_coeff_c">C</span>
+                                    <input type="text" id="inShC" inputmode="decimal" value="3.2000865489266926e-08" autocomplete="off" spellcheck="false">
+                                </label>
+                            </div>
+                            <p class="hint" data-i18n="sh_direct_hint">1/T = A + B·ln R + C·(ln R)³（T 开尔文，R 欧姆）。</p>
+                        </div>
+                        <div class="sub-panel" id="shPoints" hidden>
+                            <p class="hint" data-i18n="sh_hint">填入 3 个以上标定点：正好 3 点用闭式解，多于 3 点用最小二乘。</p>
+                            <div id="shPointsTable"></div>
+                        </div>
+                    </div>
+
+                    <!-- 导入 CSV：原始插值 / 转为 SH 拟合 -->
+                    <div id="panelCsv" class="panel" hidden>
+                        <div class="csv-drop" id="csvDrop">
+                            <input type="file" id="csvFile" accept=".csv,.txt,text/csv" hidden>
+                            <button class="btn" id="btnCsvPick" data-i18n="btn_csv_pick">选择 CSV 文件</button>
+                            <span class="muted small-text" data-i18n="csv_drop_hint">或将文件拖到此处</span>
+                        </div>
+                        <div class="segmented sub-tabs" id="csvTabs" role="group">
+                            <button class="seg-btn small" data-sub="interp" data-i18n="csv_mode_interp">原始数据插值</button>
+                            <button class="seg-btn small" data-sub="fit" data-i18n="csv_mode_fit">转换为 SH 拟合</button>
+                        </div>
+                        <p class="hint" data-i18n="csv_hint">两列：温度(℃), 电阻(Ω)；支持逗号/分号/制表符分隔，可用 # 注释与表头行。</p>
+                        <div id="csvSummary" class="csv-summary muted"></div>
+                    </div>
+
+                    <!-- 当前模型摘要 -->
+                    <div class="model-summary" id="modelSummary"></div>
+                </section>
+
+                <!-- 设备限值窗口：写入设备的 MIN/MAX/LIMIT，超出窗口的设定值会被设备拒绝 -->
+                <section class="card">
+                    <h2 data-i18n="title_limits">设备限值窗口</h2>
+                    <label class="check">
+                        <input type="checkbox" id="chkLimitEnable" disabled>
+                        <span data-i18n="label_limit_enable">启用限值（RES.LIMIT=1）</span>
+                    </label>
+                    <div class="ctl-row">
+                        <label class="field grow">
+                            <span data-i18n="label_min_ohm">最小阻值</span>
+                            <div class="input-group">
+                                <input type="text" id="inputMin" inputmode="decimal" autocomplete="off" spellcheck="false" disabled>
+                                <select id="unitMin" disabled>
+                                    <option value="1000">Ω</option>
+                                    <option value="1000000">kΩ</option>
+                                    <option value="1000000000">MΩ</option>
+                                </select>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="ctl-row">
+                        <label class="field grow">
+                            <span data-i18n="label_max_ohm">最大阻值</span>
+                            <div class="input-group">
+                                <input type="text" id="inputMax" inputmode="decimal" autocomplete="off" spellcheck="false" disabled>
+                                <select id="unitMax" disabled>
+                                    <option value="1000">Ω</option>
+                                    <option value="1000000">kΩ</option>
+                                    <option value="1000000000">MΩ</option>
+                                </select>
+                            </div>
+                        </label>
+                    </div>
+                    <button id="btnWriteLimits" class="btn" data-i18n="btn_write_limits" disabled>写入限制值</button>
+                </section>
+                </div>
+
+                <!-- 中栏：温度控制台 -->
+                <section class="card">
+                    <h2 data-i18n="title_console">温度控制台</h2>
+                    <div class="big-value">
+                        <div id="simTempBig" class="value-num xl pending">25.000 ℃</div>
+                        <div class="value-label" data-i18n="label_sim_temp">当前模拟温度</div>
+                        <div class="mini-row">
+                            <span class="mini-item" data-i18n-title="title_mini_target">
+                                <span class="mini-label" data-i18n="mini_target">目标：</span><b id="targetR">--</b>
+                            </span>
+                            <span class="mini-item" data-i18n-title="title_sp">
+                                <span class="mini-label" data-i18n="mini_sp">SP：</span><b id="spR">--</b>
+                            </span>
+                            <span class="mini-item" data-i18n-title="title_pv">
+                                <span class="mini-label" data-i18n="mini_pv">PV：</span><b id="pvR">--</b>
+                            </span>
+                            <span class="mini-item" data-i18n-title="title_tp">
+                                <span class="mini-label" data-i18n="mini_tp">TP：</span><b id="pvTemp">--</b><span id="pvDelta" class="muted"></span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="ctl-row">
+                        <label class="field grow">
+                            <span data-i18n="label_temp">温度（℃）</span>
+                            <input type="text" id="inputTemp" inputmode="decimal" value="25.000" autocomplete="off" spellcheck="false">
+                        </label>
+                        <button id="btnCalc" class="btn primary" data-i18n="btn_calc">计算</button>
+                        <button id="btnApply" class="btn" data-i18n="btn_apply">应用</button>
+                    </div>
+
+                    <label class="check">
+                        <input type="checkbox" id="chkAuto" checked>
+                        <span data-i18n="label_auto_apply">自动设置（计算/步进后直接下发）</span>
+                    </label>
+
+                    <div class="ctl-row step-row">
+                        <label class="field grow">
+                            <span data-i18n="label_step_size">步长（℃）</span>
+                            <input type="text" id="inputStepC" inputmode="decimal" value="1.0" autocomplete="off" spellcheck="false">
+                        </label>
+                        <button id="btnStepDown" class="btn step-btn" data-i18n="btn_step_down">− 步进</button>
+                        <button id="btnStepUp" class="btn step-btn" data-i18n="btn_step_up">＋ 步进</button>
+                    </div>
+
+                    <div class="divider"></div>
+
+                    <div class="ctl-row">
+                        <label class="field grow">
+                            <span data-i18n="label_r2t">阻值 → 温度（Ω）</span>
+                            <div class="input-group">
+                                <input type="text" id="inputR" inputmode="decimal" value="10000" autocomplete="off" spellcheck="false">
+                                <select id="unitR">
+                                    <option value="1000">Ω</option>
+                                    <option value="1000000">kΩ</option>
+                                    <option value="1000000000">MΩ</option>
+                                </select>
+                            </div>
+                        </label>
+                        <button id="btnFillTemp" class="btn" data-i18n="btn_fill_temp">填入温度</button>
+                    </div>
+                    <div class="readout" id="rToTReadout">--</div>
+
+
+
+                </section>
+
+                <!-- 右栏：温度-阻值曲线 -->
+                <section class="card">
+                    <h2 data-i18n="title_curve">温度-阻值曲线</h2>
+                    <div class="curve-controls">
+                        <label class="inline-field">
+                            <span data-i18n="label_range">温度范围（℃）</span>
+                            <input type="text" id="rangeMin" inputmode="decimal" value="-40" autocomplete="off" spellcheck="false">
+                            <span class="muted">…</span>
+                            <input type="text" id="rangeMax" inputmode="decimal" value="125" autocomplete="off" spellcheck="false">
+                        </label>
+                        <label class="check inline">
+                            <input type="checkbox" id="chkLogAxis" checked>
+                            <span data-i18n="label_log_axis">对数阻值轴</span>
+                        </label>
+                    </div>
+                    <div id="curveWrap" class="curve-wrap">
+                        <svg id="curve" role="img" aria-label="temperature-resistance curve"></svg>
+                        <div id="curveTip" class="curve-tip" hidden></div>
+                    </div>
+                    <div class="legend">
+                        <span class="legend-item"><i class="dot current"></i><span data-i18n="legend_current">当前设定点</span></span>
+                        <span class="legend-item"><i class="dot pv"></i><span data-i18n="legend_pv">设备 PV</span></span>
+                        <span class="legend-item"><i class="dot window"></i><span data-i18n="legend_window">允许窗口</span></span>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- 日志：默认折叠，保持主视图信息密度 -->
+        <section class="card log-card">
+            <button id="btnLogToggle" class="log-toggle">
+                <span id="logToggleIcon">▸</span>
+                <span data-i18n="title_log">AT 日志</span>
+                <span id="logCount" class="muted small-text"></span>
+            </button>
+            <div id="logBody" hidden>
+                <div class="log-header">
+                    <span class="muted small-text" data-i18n="log_header_hint">AT 命令收发记录</span>
+                    <button id="btnClearLog" class="btn tiny" data-i18n="btn_clear_log">清空</button>
+                </div>
+                <pre id="logOutput" class="log-output"></pre>
+            </div>
+        </section>
+    </div>
+
+    <!-- 固件版本不一致提示：故意不提供关闭按钮，ESC 与点击遮罩也不生效，
+         只有升级到最新版本（重新检测到版本一致）才会消失。 -->
+    <div id="fwModal" class="modal" hidden role="alertdialog" aria-modal="true" aria-labelledby="fwModalTitle">
+        <div class="modal-box">
+            <div id="fwModalTitle" class="modal-title" data-i18n="fw_modal_title">固件版本不一致</div>
+            <p id="fwModalText" class="modal-text"></p>
+            <p id="fwModalDfu" class="modal-dfu"></p>
+            <p id="fwModalStatus" class="modal-status"></p>
+            <p class="modal-note" data-i18n="fw_modal_note"></p>
+            <div class="modal-actions">
+                <a class="btn primary" href="../bootloader/" data-i18n="fw_modal_upgrade">前往升级</a>
+                <button id="fwModalRecheck" class="btn" data-i18n="fw_modal_recheck">重新检测</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="app.js?v=ntcsim-1"></script>
+</body>
+</html>

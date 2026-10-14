@@ -13,6 +13,7 @@
 - 文档入口（按浏览器语言自动跳转）：[https://akkako.github.io/PPR26_Docs/docs/](https://akkako.github.io/PPR26_Docs/docs/)
 - Bootloader 升级工具：[https://akkako.github.io/PPR26_Docs/bootloader/](https://akkako.github.io/PPR26_Docs/bootloader/)
 - 串口上位机控制工具：[https://akkako.github.io/PPR26_Docs/serial/](https://akkako.github.io/PPR26_Docs/serial/)
+- NTC 模拟器（把设备当热敏电阻用）：[https://akkako.github.io/PPR26_Docs/ntcsim/](https://akkako.github.io/PPR26_Docs/ntcsim/)
 - Python 升级工具下载：[PPR26_Bootloader.exe](https://github.com/akkako/PPR26_Docs/releases/latest/download/PPR26_Bootloader.exe) / [PPR26_Bootloader_win32.zip](https://github.com/akkako/PPR26_Docs/releases/latest/download/PPR26_Bootloader_win32.zip)
 
 ## 目录结构
@@ -29,6 +30,7 @@ webui/             网页上位机源码
   bootloader/      Bootloader 升级工具（固件自动从站点 firmware/ 加载）
   portal/          工具中心入口页
   serial/          串口上位机（WebSerial 网页版，连接后校验固件版本）
+  ntcsim/          NTC 模拟器（温度↔阻值换算 + 下发，含本地算法模块 ntc.mjs）
 firmware/          设备固件
   VERSION          第一行=最新版本号，第二行=固件文件名（与 VERSION 同目录）
   *.bin            随版本发布的固件镜像（*_pack.bin）
@@ -39,7 +41,7 @@ tools/             Python 上位机脚本
 ```
 
 `firmware/VERSION` 是**固件版本的唯一出处**：升级页面（`/bootloader/`）据此自动加载固件
-（无需选择文件），串口上位机（`/serial/`）连接设备后据此比对 `AT+DEV.FWVER?`，
+（无需选择文件），串口上位机（`/serial/`）与 NTC 模拟器（`/ntcsim/`）连接设备后据此比对 `AT+DEV.FWVER?`，
 版本不一致时弹出不可关闭的升级提示。发布新固件时：把镜像放进 `firmware/`，
 并把 `VERSION` 的两行改成新的版本号与文件名。
 

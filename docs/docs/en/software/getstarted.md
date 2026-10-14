@@ -11,10 +11,12 @@ Used directly in a browser, no installation required:
 | PPR26 Tools | <https://akkako.github.io/PPR26_Docs/> | Entry point for all online tools |
 | Bootloader Upgrade Tool | <https://akkako.github.io/PPR26_Docs/bootloader/> | Upgrade firmware over WebUSB |
 | Serial Console | <https://akkako.github.io/PPR26_Docs/serial/> | Set resistance, limits, and output state over WebSerial (requires AT mode) |
+| NTC Simulator | <https://akkako.github.io/PPR26_Docs/ntcsim/> | Use PPR26 as a thermistor: convert temperature to resistance and apply it (requires AT mode) |
 
 - Requires Chrome / Edge 109+.
 - For detailed firmware upgrade steps, see [Firmware Upgrade Guide](../quickstart/fwupgrade.md).
 - For how to use the serial console, see [Serial Console (Web)](webui_serial.md).
+- For how to use the NTC simulator, see [NTC Simulator (Web)](webui_ntcsim.md).
 
 ## Python Host Tools
 

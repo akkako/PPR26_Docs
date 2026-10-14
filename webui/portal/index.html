@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PPR26 工具中心</title>
     <link rel="icon" type="image/svg+xml" href="resistor_box_logo.svg">
-    <link rel="stylesheet" href="style.css?v=portal-1">
+    <link rel="stylesheet" href="style.css?v=portal-3">
 </head>
 <body>
     <div class="container">
@@ -72,11 +72,27 @@
                         </div>
                         <span class="entry-arrow">→</span>
                     </a>
+                    <a href="ntcsim/" class="entry-item">
+                        <span class="entry-icon">
+                            <!-- 热敏电阻：NTC 符号 + 温度曲线（22px 下仍可分辨） -->
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M4 4v16h3"></path>
+                                <path d="M7 12h9l-3.2-4.6M16 12l-3.2 4.6"></path>
+                                <path d="M19 8.5h2M19 12h2M19 15.5h1.4"></path>
+                            </svg>
+                        </span>
+                        <div class="entry-text">
+                            <h3 data-i18n="entry_ntcsim">NTC 模拟器</h3>
+                            <p data-i18n="entry_ntcsim_desc">把 PPR26 当作热敏电阻：按 B 值法 / Steinhart-Hart / CSV 数据把温度换算成阻值并下发</p>
+                        </div>
+                        <span class="entry-arrow">→</span>
+                    </a>
                 </div>
             </section>
         </main>
     </div>
 
-    <script src="app.js?v=portal-1"></script>
+    <script src="app.js?v=portal-3"></script>
 </body>
 </html>

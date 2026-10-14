@@ -107,5 +107,6 @@ nav:
       - 概览: software/index.md
       - 上位机使用指南: software/getstarted.md
       - 串口上位机（网页版）: software/webui_serial.md
+      - NTC 模拟器（网页版）: software/webui_ntcsim.md
       - 工具下载与使用: software/downloads.md
   - 设备规格: datasheet/index.md
