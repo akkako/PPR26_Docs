@@ -4,9 +4,10 @@ on:
   push:
     branches: [main]
     paths:
-      # 只有上位机（Python 工具）代码或其工作流发生变化时才构建
+      # 只有 Python 上位机目录（tools/）发生变化时才构建并发布 Release；
+      # 其它改动（文档、网页工具、工作流本身等）都不触发。
+      # 需要单独验证本工作流时，用 workflow_dispatch 手动运行。
       - "tools/**"
-      - ".github/workflows/build-tools.yml"
   workflow_dispatch:
 
 permissions:
