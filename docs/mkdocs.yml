@@ -49,6 +49,8 @@ plugins:
 hooks:
   # 让语言切换器指向「当前页面对应的另一种语言页面」，见 hooks/alternate_links.py
   - hooks/alternate_links.py
+  # 把矢量示例图内联进页面（内联 SVG 才能跟随页面深浅色主题），见 hooks/inline_svg.py
+  - hooks/inline_svg.py
 
 extra:
   social:

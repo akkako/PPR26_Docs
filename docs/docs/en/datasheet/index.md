@@ -88,7 +88,7 @@ one PPR26, **with serial numbers and similar identifiers removed**.
 | ---- | ---- |
 | Model | PPR26 |
 | Serial number | *(removed in this example)* |
-| Firmware / hardware version | FW 1.0.0 / HW 5 |
+| Firmware / hardware version | FW 1.0.0 / HW 0 |
 | Production date | *(removed in this example)* |
 | Test date | 2026-10-14 |
 | Reference meter | Agilent 34410A (*SN removed*), 4-wire |
@@ -118,7 +118,9 @@ one PPR26, **with serial numbers and similar identifiers removed**.
 
 **④ Accuracy distribution plot**
 
-![PPR26 accuracy distribution example](../assets/accuracy_example.png)
+<!-- svg:assets/accuracy_example.svg -->
+
+*Click the chart to open the vector original in a new tab and zoom freely.*
 
 **⑤ Notes**
 
