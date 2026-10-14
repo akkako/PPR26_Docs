@@ -100,6 +100,7 @@ nav:
           - 概览: reference/scripts/index.md
           - 校准脚本: reference/scripts/calibration.md
           - 测试脚本: reference/scripts/test.md
+          - 精度测试: reference/scripts/accuracy.md
   - 上位机:
       - 概览: software/index.md
       - 上位机使用指南: software/getstarted.md

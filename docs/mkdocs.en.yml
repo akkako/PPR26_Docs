@@ -50,6 +50,7 @@ nav:
           - Overview: reference/scripts/index.md
           - Calibration Script: reference/scripts/calibration.md
           - Test Script: reference/scripts/test.md
+          - Accuracy Test: reference/scripts/accuracy.md
   - Host Tools:
       - Overview: software/index.md
       - Host Tools Guide: software/getstarted.md
