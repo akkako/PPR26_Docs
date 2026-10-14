@@ -1,7 +1,15 @@
+# 中文文档站点配置（默认/主语言）
+#
+# 站点结构：中英文各自是一份完整站点，构建到 docs/site/zh_CN/ 与 docs/site/en/，
+# 部署后分别对应 /docs/zh_CN/ 与 /docs/en/；/docs/ 首页由 docs/index.html 按浏览器语言跳转。
+# 英文配置见同目录 mkdocs.en.yml（通过 INHERIT 复用本文件的主题与扩展配置）。
 site_name: PPR26 文档中心
-site_url: https://akkako.github.io/PPR26_Docs/docs/
+site_url: https://akkako.github.io/PPR26_Docs/docs/zh_CN/
 repo_url: https://github.com/akkako/PPR26_Docs
 repo_name: GitHub
+
+docs_dir: docs/zh_CN
+site_dir: site/zh_CN
 
 theme:
   name: material
@@ -34,20 +42,33 @@ theme:
     - content.tabs.link
 
 plugins:
-  - search
-  - exporter:
-      formats:
-        pdf:
-          enabled: !ENV [MKDOCS_EXPORTER_PDF, false]
-          concurrency: 4
-          aggregator:
-            enabled: !ENV [MKDOCS_EXPORTER_PDF, false]
-            output: PPR26_manual.pdf
+  # 两种语言各自构建、各自生成搜索索引，因此这里只需声明本语言的分词语言
+  - search:
+      lang: [zh]
+
+hooks:
+  # 让语言切换器指向「当前页面对应的另一种语言页面」，见 hooks/alternate_links.py
+  - hooks/alternate_links.py
 
 extra:
   social:
     - icon: fontawesome/brands/github-square
       link: https://github.com/akkako/PPR26_Docs
+  # 语言切换器（Material 的 extra.alternate）：
+  #   home —— 该语言站点首页，固定用于兜底与生成对应页面链接
+  #   link —— 实际渲染的链接，由 hooks/alternate_links.py 按当前页面改写
+  #   dir  —— 该语言内容所在目录（docs/ 下），用于判断对应页面是否存在
+  alternate:
+    - name: 中文
+      lang: zh-CN
+      home: /PPR26_Docs/docs/zh_CN/
+      link: /PPR26_Docs/docs/zh_CN/
+      dir: zh_CN
+    - name: English
+      lang: en
+      home: /PPR26_Docs/docs/en/
+      link: /PPR26_Docs/docs/en/
+      dir: en
 
 markdown_extensions:
   - admonition

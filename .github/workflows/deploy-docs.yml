@@ -29,13 +29,13 @@ jobs:
       - name: Install MkDocs and dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install mkdocs mkdocs-material mkdocs-exporter
+          pip install mkdocs mkdocs-material
 
-      - name: Install Playwright browser
-        run: playwright install chromium
-
-      - name: Build MkDocs site
+      - name: Build Chinese documentation
         run: mkdocs build --config-file docs/mkdocs.yml
+
+      - name: Build English documentation
+        run: mkdocs build --config-file docs/mkdocs.en.yml
 
       - name: Assemble static site
         run: |
@@ -43,16 +43,19 @@ jobs:
           rm -rf site
           mkdir -p site/docs site/bootloader site/serial
 
-          # 1) MkDocs 构建产物 -> /docs/
+          # 1) 两份 MkDocs 构建产物（docs/site/zh_CN、docs/site/en）-> /docs/
           cp -r docs/site/. site/docs/
 
-          # 2) 入口页 -> 根目录
+          # 2) 文档首页：按浏览器语言跳转到 /docs/zh_CN/ 或 /docs/en/
+          cp docs/index.html site/docs/index.html
+
+          # 3) 入口页 -> 根目录
           cp -r webui/portal/. site/
 
-          # 3) Bootloader 升级工具 -> /bootloader/
+          # 4) Bootloader 升级工具 -> /bootloader/
           cp -r webui/bootloader/. site/bootloader/
 
-          # 4) 串口上位机（WebSerial）-> /serial/
+          # 5) 串口上位机（WebSerial）-> /serial/
           cp -r webui/serial/. site/serial/
 
       - name: Upload Pages artifact

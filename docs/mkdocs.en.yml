@@ -1,0 +1,58 @@
+# English documentation site configuration.
+#
+# Inherits the shared theme/extensions setup from mkdocs.yml and only overrides
+# what is language specific: site name and URL, content directory, output
+# directory, theme language/palette labels, search language and the nav titles.
+INHERIT: mkdocs.yml
+
+site_name: PPR26 Documentation
+site_url: https://akkako.github.io/PPR26_Docs/docs/en/
+
+docs_dir: docs/en
+site_dir: site/en
+
+theme:
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search:
+      lang: [en]
+
+nav:
+  - Home: index.md
+  - Quick Start:
+      - Overview: quickstart/index.md
+      - Unboxing and Connection: quickstart/getting-started.md
+      - Communication Mode Switching: quickstart/modeswitch.md
+      - Firmware Upgrade: quickstart/fwupgrade.md
+  - Reference:
+      - Overview: reference/index.md
+      - AT Command Reference: reference/at.md
+      - SCPI Command Reference: reference/scpi.md
+      - AT Python Example: reference/python_at.md
+      - SCPI Python Example: reference/python_scpi.md
+      - Scripts:
+          - Overview: reference/scripts/index.md
+          - Calibration Script: reference/scripts/calibration.md
+          - Test Script: reference/scripts/test.md
+  - Host Tools:
+      - Overview: software/index.md
+      - Host Tools Guide: software/getstarted.md
+      - Serial Console (Web): software/webui_serial.md
+      - Tool Downloads and Usage: software/downloads.md
+  - Specifications: datasheet/index.md

@@ -90,4 +90,4 @@ python ppr26_selftest_scpi.py -b @py    # 使用 pyvisa-py 后端
 
 ## 文档
 
-使用教程与下载说明见在线文档：[工具下载与使用](https://akkako.github.io/PPR26_Docs/docs/software/downloads/)。
+使用教程与下载说明见在线文档：[工具下载与使用](https://akkako.github.io/PPR26_Docs/docs/zh_CN/software/downloads/)。

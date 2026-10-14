@@ -32,6 +32,12 @@ const I18N = {
     }
 };
 
+// 文档站点分中英文两套，入口链接随界面语言切换（与文档站点目录一致）
+const DOCS_ENTRY = {
+    zh: "docs/zh_CN/",
+    en: "docs/en/",
+};
+
 let currentLang = "zh";
 
 function t(key) {
@@ -47,6 +53,8 @@ function applyLang() {
     });
     const langBtn = document.getElementById("langToggle");
     if (langBtn) langBtn.textContent = currentLang === "zh" ? "EN" : "中";
+    const docsEntry = document.getElementById("docsEntry");
+    if (docsEntry) docsEntry.setAttribute("href", DOCS_ENTRY[currentLang]);
     document.documentElement.setAttribute("lang", currentLang);
 }
 

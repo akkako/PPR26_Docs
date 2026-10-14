@@ -101,7 +101,7 @@ jobs:
             - `requirements.txt`：Python 依赖（pyserial + pyusb + pyvisa）
             - `libusb-1.0.dll`：Windows 下 Python 脚本所需的 libusb 后端
 
-            使用说明：https://akkako.github.io/PPR26_Docs/docs/software/downloads/
+            使用说明：https://akkako.github.io/PPR26_Docs/docs/zh_CN/software/downloads/
           files: |
             dist/PPR26_Bootloader.exe
             release/winusb_bootloader.py

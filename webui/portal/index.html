@@ -25,7 +25,8 @@
                 <h2 data-i18n="entry_title">功能入口</h2>
                 <p class="entry-desc" data-i18n="entry_desc">选择一个功能开始使用：</p>
                 <div class="entry-grid">
-                    <a href="docs/" class="entry-item">
+                    <!-- href 由 app.js 按当前界面语言改写，指向对应语言的文档 -->
+                    <a id="docsEntry" href="docs/zh_CN/" class="entry-item">
                         <span class="entry-icon">
                             <!-- 文档 / 书 -->
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
