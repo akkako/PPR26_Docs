@@ -396,6 +396,92 @@ select:disabled,
     word-break: break-all;
 }
 
+/* ---------------- 固件版本不一致提示（不可关闭） ---------------- */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.modal[hidden] {
+    display: none;
+}
+
+.modal-box {
+    width: 100%;
+    max-width: 480px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.modal-title {
+    margin-bottom: 12px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--danger);
+}
+
+.modal-text {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    word-break: break-all;
+}
+
+.modal-status,
+.modal-dfu {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    word-break: break-all;
+}
+
+.modal-status {
+    color: var(--danger);
+}
+
+.modal-status:empty,
+.modal-dfu:empty {
+    display: none;
+}
+
+/* 自动进入 DFU 的状态行：进行中=次要文字，成功=绿，失败=红 */
+.modal-dfu {
+    color: var(--text-2);
+}
+
+.modal-dfu.ok {
+    color: var(--success);
+}
+
+.modal-dfu.err {
+    color: var(--danger);
+}
+
+.modal-note {
+    margin: 0 0 18px 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
+}
+
+.modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.modal-actions .btn {
+    text-decoration: none;
+}
+
 @media (max-width: 560px) {
     .container {
         padding: 20px 14px;

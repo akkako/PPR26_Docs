@@ -20,6 +20,8 @@ Disconnect power from the instrument, hold the DFU upgrade button on the instrum
 !!! tip "Entering DFU without the button"
     When the device is in AT mode, you can send `AT+DEV.DFU`; when it is in SCPI mode, you can send `SYST:DFU`. The device automatically restarts and enters DFU mode, with no button operation required. For details, see the [AT Command Reference](../reference/at.md) and the [SCPI Command Reference](../reference/scpi.md).
 
+    In addition, when the [serial console](../software/webui_serial.md) connects and finds the device firmware older than the release published on this site, it sends `AT+DEV.DFU` automatically: the device disconnects and enters DFU mode, ready for the upgrade steps below.
+
 ### Step 2: Open the WebUI Upgrade Page
 
 Open the [PPR26 Bootloader Upgrade Tool](https://akkako.github.io/PPR26_Docs/bootloader/) with Chrome / Edge 109+.
@@ -52,16 +54,20 @@ After a successful connection, the relevant information is displayed in the devi
 !!! info "Note"
     The manufacture date format is `YY-WW`, which represents the last two digits of the production year and the production week; for example, `26-09` means week 9 of 2026. The hardware version is a single digit, `0`-`6`.
 
-### Step 5: Select the Firmware File to Upgrade
+### Step 5: Confirm the Firmware to Upgrade
 
-In the upgrade area, click the **Select Firmware** button and choose the firmware file shipped with the release (`*_pack.bin`) in the dialog that appears.
+The upgrade area loads the latest released firmware **automatically** — there is no file dialog. When the page opens it reads `firmware/VERSION` (line 1: version, line 2: firmware file name) from the site, fetches the referenced image, and shows its version, file name, and size.
+
+!!! info "Where the firmware comes from"
+    The upgrade page and the firmware ship from the same repository: `firmware/VERSION` names the latest version and the matching `*_pack.bin` image, so the tool always flashes the firmware released together with the site — picking the wrong file is not possible. Opening the upgrade page therefore requires access to this site; offline, use the Python upgrade script below with your own firmware file.
 
 !!! warning "Caution"
-    Select the `*_pack.bin` firmware file shipped with the release; do not select `.hex` or other files that have not been packaged.
+    - If the upgrade area says the firmware could not be loaded, check your network and refresh the page; until the image is loaded, the **One-Click Upgrade** button stays disabled.
+    - Once the device is connected, the **Firmware version** in the device info is annotated with `(up to date)` or `(can upgrade to FW x.y.z)`, so you can cross-check it against the version shown in the upgrade area.
 
 ### Step 6: Perform the Firmware Upgrade
 
-After selecting the firmware to upgrade, click the **One-Click Upgrade** button, and the upgrade process completes automatically.
+Click **One-Click Upgrade**; the whole flow (erase → program → verify → jump) completes automatically.
 
 When the upgrade is complete, the instrument automatically exits DFU mode and runs the new firmware.
 
@@ -164,4 +170,4 @@ python winusb_bootloader.py --sn 0123456789ABCDEF01234567 --upgrade PPR26_APP_pa
 
 ### Upgrade Check Fails
 
-Make sure you have selected the `*_pack.bin` firmware file shipped with the release, not a file from another source or a file that has not been packaged.
+The upgrade page loads the firmware from the site's `firmware/` directory (named by `firmware/VERSION`), so nothing is selected by hand. If verification fails, make sure the `*_pack.bin` image in that directory is complete; if the firmware was just updated, force-refresh the page (Windows: `Ctrl + F5`; macOS: `Cmd + Shift + R`) to bypass the browser cache.

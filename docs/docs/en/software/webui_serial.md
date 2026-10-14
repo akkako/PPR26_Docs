@@ -27,6 +27,37 @@ URL: <https://akkako.github.io/PPR26_Docs/serial/>
 
 Click **←** in the page header to return to [PPR26 Tools](https://akkako.github.io/PPR26_Docs/); the two buttons at the upper right are for **switching the light/dark theme** and the **Chinese/English UI**, and the settings are saved locally in the browser.
 
+## Firmware Version Check
+
+After a successful connection, the console compares the device firmware with the latest version published on the site (line 1 of `firmware/VERSION`). **The notice appears only when the device firmware is older than the published release:**
+
+| Case | Behaviour |
+| ---- | --------- |
+| Versions match | Normal use; the log records `Firmware version matches the latest release (FW x.y.z)` |
+| Device is older | A **non-dismissable** notice appears showing both versions, and the tool **sends `AT+DEV.DFU` automatically** to switch the device into DFU mode |
+| Device is newer | No notice (likely a development build; no upgrade needed) — only a line in the log |
+| Versions cannot be compared | No notice — only a warning in the log |
+
+### Automatic DFU Entry
+
+When the device firmware is older than the published release, the console sends `AT+DEV.DFU` as soon as the notice appears, so the rear-panel DFU button is never needed:
+
+1. The notice shows "Switching the device to DFU mode...".
+2. The device drops off the USB bus and re-enumerates as a DFU device (`PPR26 WinUSB DFU`, `0xFFFE:0xFFFD`); the serial port disappears and the page returns to **Disconnected**. This is expected: the device reboots immediately and the `OK` reply may not make it back, so the console treats **the serial port going away** as the success criterion.
+3. The notice turns green ("AT+DEV.DFU sent"); click **Go to Upgrade** and the upgrade tool will find a device already in DFU mode.
+
+If the device rejects the command (for example very old firmware without DFU support), the notice shows the failure reason; enter DFU manually as described in the [Firmware Upgrade Guide](../quickstart/fwupgrade.md).
+
+The command is sent at most once per connection. When the device firmware is **newer** than the published release (a development build), neither the notice nor DFU mode is triggered, so a unit under development is never rebooted.
+
+!!! warning "This notice cannot be dismissed"
+    The mismatch notice has **no close button**: clicking the backdrop outside it and pressing `ESC` do nothing, and the device cannot be operated further without upgrading. This is deliberate — firmware that does not match the current documentation/tools can behave differently from what is described here.
+
+    There is exactly one way out: upgrade to the latest version and reconnect; if the device has already been upgraded, click **Check Again** in the notice (it re-reads `AT+DEV.FWVER?` and compares again) and it clears itself. **Go to Upgrade** opens the [Bootloader Upgrade Tool](https://akkako.github.io/PPR26_Docs/bootloader/).
+
+!!! note "When the latest version is unavailable"
+    Reading the version requires access to this site. If the read fails, a warning is written to the log and the check is skipped — it is never reported as a mismatch.
+
 ## User Interface
 
 | Area | Content |

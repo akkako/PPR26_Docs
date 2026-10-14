@@ -51,13 +51,17 @@ const I18N = {
         btn_connect: "连接设备",
         btn_exit_dfu: "退出DFU",
         btn_refresh_info: "刷新信息",
-        btn_select_file: "选择固件",
         btn_upgrade: "一键升级",
         btn_clear_log: "清空",
-        file_not_selected: "未选择文件",
         status_disconnected: "未连接",
         status_connected: "已连接",
-        upgrade_hint: "请选择待升级固件",
+        upgrade_hint: "无需手动选择文件：按 firmware/VERSION 指定的最新发布版本自动加载（需要能访问本站点）。",
+        fw_loading: "正在加载最新固件…",
+        fw_none: "固件未加载",
+        fw_ready: "最新固件 {0} · {1}（{2}）",
+        fw_unavailable: "无法加载固件: ",
+        fw_is_latest: "（已是最新）",
+        fw_needs_upgrade: "（可升级到 {0}）",
 
         // INFO_COMMANDS labels
         info_vendor: "供应商",
@@ -85,9 +89,12 @@ const I18N = {
         err_packet_too_large: "数据包过大: ",
         err_cmd_mismatch: "响应命令不匹配: ",
         err_bad_page_size: "设备返回的页缓冲区大小无效: ",
-        err_file_hint: "（请选择随版本发布的 *_pack.bin 固件文件）",
+        err_file_hint: "（固件应为随版本发布的 *_pack.bin 镜像）",
         err_file_too_small: "固件文件过小: ",
         err_file_too_large: "固件文件过大: ",
+        err_fw_fetch: "获取固件失败: ",
+        err_version_invalid: "VERSION 文件格式无效（第一行版本号、第二行固件文件名）",
+        err_fw_name_invalid: "VERSION 中的固件文件名无效: ",
 
         // Log messages
         log_busy: "正在执行其它操作，请稍候",
@@ -97,12 +104,12 @@ const I18N = {
         log_read_failed: "读取 {0} 失败: ",
         log_start_upgrade: "开始{0}...",
         log_verifying: "校验中...",
-        log_verify_failed: "固件校验失败，请确认选择的是随版本发布的 *_pack.bin 固件文件",
+        log_verify_failed: "固件校验失败，请确认站点 firmware/ 下的固件镜像完整（*_pack.bin）",
         log_upgrade_success: "{0}成功，正在跳转...",
         log_jumped: "已跳转运行，设备断开",
         log_upgrade_failed: "{0}失败: ",
-        log_no_file: "请先选择固件文件",
-        log_file_error: "处理文件失败: ",
+        log_fw_loaded: "已加载最新固件 {0} · {1}",
+        log_fw_load_failed: "固件加载失败: ",
         log_verifying_app: "正在校验应用...",
         log_app_verify_failed: "应用校验失败，无法退出DFU模式",
         log_app_verify_success: "校验成功，正在跳转应用...",
@@ -123,13 +130,17 @@ const I18N = {
         btn_connect: "Connect Device",
         btn_exit_dfu: "Exit DFU",
         btn_refresh_info: "Refresh Info",
-        btn_select_file: "Select Firmware",
         btn_upgrade: "One-Click Upgrade",
         btn_clear_log: "Clear",
-        file_not_selected: "No file selected",
         status_disconnected: "Disconnected",
         status_connected: "Connected",
-        upgrade_hint: "Select the upgrade firmware",
+        upgrade_hint: "No file dialog: the latest release named in firmware/VERSION is loaded automatically (requires access to this site).",
+        fw_loading: "Loading the latest firmware...",
+        fw_none: "Firmware not loaded",
+        fw_ready: "Latest firmware {0} · {1} ({2})",
+        fw_unavailable: "Firmware unavailable: ",
+        fw_is_latest: " (up to date)",
+        fw_needs_upgrade: " (can upgrade to {0})",
 
         // INFO_COMMANDS labels
         info_vendor: "Vendor",
@@ -157,9 +168,12 @@ const I18N = {
         err_packet_too_large: "Packet too large: ",
         err_cmd_mismatch: "Unexpected response command: ",
         err_bad_page_size: "Invalid page buffer size from device: ",
-        err_file_hint: " (please select the released *_pack.bin firmware file)",
+        err_file_hint: " (the firmware must be a released *_pack.bin image)",
         err_file_too_small: "Firmware file too small: ",
         err_file_too_large: "Firmware file too large: ",
+        err_fw_fetch: "Failed to fetch firmware: ",
+        err_version_invalid: "Invalid VERSION file (line 1 = version, line 2 = firmware file name)",
+        err_fw_name_invalid: "Invalid firmware file name in VERSION: ",
 
         // Log messages
         log_busy: "Another operation is in progress, please wait",
@@ -169,12 +183,12 @@ const I18N = {
         log_read_failed: "Failed to read {0}: ",
         log_start_upgrade: "Starting {0}...",
         log_verifying: "Verifying...",
-        log_verify_failed: "Firmware verification failed; make sure you selected the released *_pack.bin file",
+        log_verify_failed: "Firmware verification failed; check that the image under firmware/ is a complete *_pack.bin",
         log_upgrade_success: "{0} successful, jumping...",
         log_jumped: "Jumped to application, device disconnected",
         log_upgrade_failed: "{0} failed: ",
-        log_no_file: "Please select firmware file first",
-        log_file_error: "File processing failed: ",
+        log_fw_loaded: "Latest firmware loaded: {0} · {1}",
+        log_fw_load_failed: "Firmware load failed: ",
         log_verifying_app: "Verifying application...",
         log_app_verify_failed: "Application verification failed, cannot exit DFU mode",
         log_app_verify_success: "Verification successful, jumping to application...",
@@ -202,9 +216,9 @@ function applyLang() {
     const langBtn = document.getElementById("langToggle");
     langBtn.textContent = currentLang === "zh" ? "EN" : "中";
     document.documentElement.setAttribute("lang", currentLang);
-    // 连接状态与已选固件信息不参与 data-i18n 批量替换，按当前语言重新渲染。
+    // 连接状态与固件信息不参与 data-i18n 批量替换，按当前语言重新渲染。
     setConnected(bl.isConnected());
-    renderFileInfo();
+    renderFirmwareInfo();
 }
 
 function initLang() {
@@ -418,13 +432,23 @@ let busy = false;   // true while an upgrade / exit-DFU dialog owns the device
 const elStatus = document.getElementById("connStatus");
 const elInfoCard = document.getElementById("deviceInfoCard");
 const elInfoList = document.getElementById("infoList");
-const elFile = document.getElementById("fwFile");
 const elFileInfo = document.getElementById("fileInfo");
 const elBtnUpgrade = document.getElementById("btnUpgrade");
 const elBtnExitDfu = document.getElementById("btnExitDfu");
 const elProgressBar = document.getElementById("progressBar");
 const elProgressText = document.getElementById("progressText");
 const elLog = document.getElementById("logOutput");
+
+/* 固件来源：站点上的 firmware/VERSION —— 第一行版本号，第二行固件文件名
+   （与该文件同目录）。先试部署后的相对路径（/bootloader/ → /firmware/），
+   再试直接用仓库根提供静态文件时的路径（/webui/bootloader/ → /firmware/），
+   本地调试两种服务方式都能用。 */
+const FW_DIRS = ["../firmware/", "../../firmware/"];
+const FW_NAME_RE = /^[A-Za-z0-9._-]+$/;
+
+let firmware = null;          // { version, name, image }；加载成功前不允许升级
+let firmwareLoading = false;
+let firmwareError = "";
 
 function log(message, type = "info") {
     const now = new Date().toLocaleTimeString();
@@ -433,20 +457,90 @@ function log(message, type = "info") {
     elLog.scrollTop = elLog.scrollHeight;
 }
 
+/** 版本号比较用：忽略大小写、多余空白，以及设备上报的 "FW " 前缀。 */
+function normalizeVersion(text) {
+    return String(text || "").trim().replace(/\s+/g, " ").toUpperCase().replace(/^FW\s*/, "");
+}
+
+/** VERSION 文件解析：空行与 `#` 开头的注释行忽略。 */
+function parseVersionFile(text) {
+    const lines = String(text).split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line !== "" && !line.startsWith("#"));
+    if (lines.length < 2) {
+        throw new Error(t("err_version_invalid"));
+    }
+    if (!FW_NAME_RE.test(lines[1])) {
+        throw new Error(t("err_fw_name_invalid") + lines[1]);
+    }
+    return { version: lines[0], name: lines[1] };
+}
+
+async function fetchOk(url) {
+    const resp = await fetch(url, { cache: "no-store" });
+    if (!resp.ok) {
+        throw new Error(t("err_fw_fetch") + url + " HTTP " + resp.status);
+    }
+    return resp;
+}
+
+/** 按 VERSION 取回最新固件镜像；失败只记录原因，按钮保持禁用。 */
+async function loadLatestFirmware() {
+    firmwareLoading = true;
+    firmwareError = "";
+    renderFirmwareInfo();
+    refreshControls();
+    try {
+        let meta = null;
+        let dir = null;
+        let lastError = null;
+        for (const candidate of FW_DIRS) {
+            try {
+                meta = parseVersionFile(await (await fetchOk(candidate + "VERSION")).text());
+                dir = candidate;
+                break;
+            } catch (e) {
+                lastError = e;
+            }
+        }
+        if (dir === null) {
+            throw lastError;
+        }
+        const image = new Uint8Array(await (await fetchOk(dir + meta.name)).arrayBuffer());
+        validateImageSize(image.length);
+        firmware = { version: meta.version, name: meta.name, image };
+        log(t("log_fw_loaded").replace("{0}", meta.version).replace("{1}", meta.name), "ok");
+    } catch (e) {
+        firmware = null;
+        firmwareError = e.message;
+        log(t("log_fw_load_failed") + e.message, "error");
+    } finally {
+        firmwareLoading = false;
+        renderFirmwareInfo();
+        refreshControls();
+    }
+}
+
 function setConnected(connected) {
     if (connected) {
         elStatus.textContent = t("status_connected");
         elStatus.classList.add("connected");
         elInfoCard.hidden = false;
-        elBtnUpgrade.disabled = false;
-        elBtnExitDfu.disabled = false;
     } else {
         elStatus.textContent = t("status_disconnected");
         elStatus.classList.remove("connected");
         elInfoCard.hidden = true;
-        elBtnUpgrade.disabled = true;
-        elBtnExitDfu.disabled = true;
     }
+    refreshControls();
+}
+
+/** 按钮可用性 = 连接状态 × 固件是否已加载 × 是否正在执行操作。 */
+function refreshControls() {
+    const connected = bl.isConnected();
+    document.getElementById("btnConnect").disabled = connected || busy;
+    document.getElementById("btnRefreshInfo").disabled = !connected || busy;
+    elBtnExitDfu.disabled = !connected || busy;
+    elBtnUpgrade.disabled = !connected || busy || firmware === null;
 }
 
 function setProgress(value, total, text = "") {
@@ -464,16 +558,7 @@ function setProgress(value, total, text = "") {
 /** 升级 / 退出 DFU 期间禁用全部按钮：协议要求一问一答，命令流不得交叉。 */
 function setBusy(value) {
     busy = value;
-    for (const id of ["btnConnect", "btnExitDfu", "btnRefreshInfo", "btnUpgrade"]) {
-        const el = document.getElementById(id);
-        if (el) el.disabled = value;
-    }
-    if (!value) {
-        const connected = bl.isConnected();
-        document.getElementById("btnConnect").disabled = connected;
-        elBtnUpgrade.disabled = !connected;
-        elBtnExitDfu.disabled = !connected;
-    }
+    refreshControls();
 }
 
 async function connect() {
@@ -506,6 +591,12 @@ async function refreshInfo() {
                     value = `${await bl.getProgramInfo()} bytes`;
                 } else {
                     value = await bl.getString(item.cmd);
+                }
+                // 固件版本标注与站点发布版本的关系，避免升错版本。
+                if (item.cmd === CMD_GET_FIRMWARE_VERSION && value && firmware) {
+                    value += normalizeVersion(value) === normalizeVersion(firmware.version)
+                        ? t("fw_is_latest")
+                        : t("fw_needs_upgrade").replace("{0}", firmware.version);
                 }
                 const dt = document.createElement("dt");
                 dt.textContent = t(item.label);
@@ -576,19 +667,17 @@ function validateImageSize(size) {
     }
 }
 
-async function upgradeFile() {
-    const file = elFile.files[0];
-    if (!file) return log(t("log_no_file"), "error");
+async function upgradeLatest() {
+    if (!bl.isConnected()) return log(t("log_please_connect"), "error");
     if (busy) return log(t("log_busy"), "error");
 
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        const image = new Uint8Array(arrayBuffer);
-        validateImageSize(image.length);
-        await runUpgrade(image, t("btn_upgrade"));
-    } catch (e) {
-        log(t("log_file_error") + e.message, "error");
+    // 页面加载时没取到固件（例如当时断网）就在这里再试一次。
+    if (!firmware) {
+        await loadLatestFirmware();
+        if (!firmware) return;
     }
+
+    await runUpgrade(firmware.image, `${t("btn_upgrade")} ${firmware.version}`);
 }
 
 async function exitDfu() {
@@ -641,7 +730,7 @@ function toggleTheme() {
 document.getElementById("btnConnect").addEventListener("click", connect);
 document.getElementById("btnExitDfu").addEventListener("click", exitDfu);
 document.getElementById("btnRefreshInfo").addEventListener("click", refreshInfo);
-document.getElementById("btnUpgrade").addEventListener("click", upgradeFile);
+document.getElementById("btnUpgrade").addEventListener("click", upgradeLatest);
 document.getElementById("btnClearLog").addEventListener("click", () => {
     elLog.textContent = "";
 });
@@ -654,22 +743,24 @@ function formatFileSize(bytes) {
     return (bytes / (1024 * 1024)).toFixed(2) + " MB";
 }
 
-/** Show the selected firmware file (name, size, size check) in the current language. */
-function renderFileInfo() {
-    const file = elFile.files[0];
-    if (!file) {
-        elFileInfo.textContent = t("file_not_selected");
-        return;
+/** 升级区显示的固件来源：站点 firmware/VERSION 指向的版本。 */
+function renderFirmwareInfo() {
+    let text;
+    let warn = false;
+    if (firmwareLoading) {
+        text = t("fw_loading");
+    } else if (firmware) {
+        text = t("fw_ready")
+            .replace("{0}", firmware.version)
+            .replace("{1}", firmware.name)
+            .replace("{2}", formatFileSize(firmware.image.length));
+    } else {
+        warn = true;
+        text = firmwareError ? t("fw_unavailable") + firmwareError : t("fw_none");
     }
-    elFileInfo.textContent = `${file.name} (${formatFileSize(file.size)})`;
-    try {
-        validateImageSize(file.size);
-    } catch (e) {
-        elFileInfo.textContent += ` — ${e.message}`;
-    }
+    elFileInfo.textContent = text;
+    elFileInfo.classList.toggle("warn", warn);
 }
-
-elFile.addEventListener("change", renderFileInfo);
 
 navigator.usb?.addEventListener("disconnect", async (e) => {
     if (e.device === bl.device) {
@@ -687,3 +778,5 @@ if (navigator.usb) {
 } else {
     log(t("log_api_missing"), "error");
 }
+// 自动加载 firmware/VERSION 指定的最新固件（不需要用户选择文件）。
+loadLatestFirmware();

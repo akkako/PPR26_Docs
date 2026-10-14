@@ -221,17 +221,15 @@ input[type="text"]:focus {
     border-color: var(--accent);
 }
 
-.file-label {
-    cursor: pointer;
-}
-
-.file-label input[type="file"] {
-    display: none;
-}
-
 .file-name {
+    margin-top: 12px;
     font-size: 13px;
     color: var(--text-2);
+    word-break: break-all;
+}
+
+.file-name.warn {
+    color: var(--danger);
 }
 
 .file-hint {

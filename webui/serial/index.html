@@ -9,7 +9,7 @@
     <title>PPR26 Serial Console</title>
     <link rel="icon" type="image/svg+xml" href="resistor_box_logo.svg">
     <!-- Cache-busting: bump the version whenever app.js/style.css changes. -->
-    <link rel="stylesheet" href="style.css?v=serial-6">
+    <link rel="stylesheet" href="style.css?v=serial-8">
 </head>
 <body>
     <div class="container">
@@ -150,6 +150,22 @@
         </section>
     </div>
 
-    <script src="app.js?v=serial-7"></script>
+    <!-- 固件版本不一致提示：故意不提供关闭按钮，ESC 与点击遮罩也不生效，
+         只有升级到最新版本（重新检测到版本一致）才会消失。 -->
+    <div id="fwModal" class="modal" hidden role="alertdialog" aria-modal="true" aria-labelledby="fwModalTitle">
+        <div class="modal-box">
+            <div id="fwModalTitle" class="modal-title" data-i18n="fw_modal_title">固件版本不一致</div>
+            <p id="fwModalText" class="modal-text"></p>
+            <p id="fwModalDfu" class="modal-dfu"></p>
+            <p id="fwModalStatus" class="modal-status"></p>
+            <p class="modal-note" data-i18n="fw_modal_note"></p>
+            <div class="modal-actions">
+                <a class="btn primary" href="../bootloader/" data-i18n="fw_modal_upgrade">前往升级</a>
+                <button id="fwModalRecheck" class="btn" data-i18n="fw_modal_recheck">重新检测</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=serial-9"></script>
 </body>
 </html>

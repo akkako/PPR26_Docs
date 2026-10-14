@@ -102,6 +102,27 @@ const I18N = {
         log_disconnected: "设备已断开",
         log_please_connect: "请先连接设备",
         log_unexpected: "收到非预期响应:",
+
+        /* 固件版本检查（连接后与 firmware/VERSION 比对；设备更旧时提示并自动进入 DFU） */
+        fw_modal_title: "固件版本不一致",
+        fw_modal_text: "当前设备固件版本为 {0}，最新发布版本为 {1}。版本不一致，请先升级固件。",
+        fw_modal_note: "此提示无法关闭：升级到最新版本后重新连接（或点击重新检测）即自动解除。",
+        fw_modal_upgrade: "前往升级",
+        fw_modal_recheck: "重新检测",
+        fw_dfu_sending: "正在让设备进入 DFU 模式…",
+        fw_dfu_sent: "已发送 AT+DEV.DFU：设备断开并重启为 DFU 模式，接下来点击「前往升级」。",
+        fw_dfu_failed: "自动进入 DFU 失败: ",
+        fw_recheck_disconnected: "设备未连接：请先连接设备，或直接前往升级页面。",
+        fw_recheck_in_dfu: "设备已进入 DFU 模式（串口已断开）：请点击「前往升级」继续。",
+        err_version_invalid: "VERSION 文件格式无效（第一行应为固件版本号）",
+        log_fw_latest: "最新固件版本: {0}",
+        log_fw_latest_unknown: "未获取到最新固件版本（{0}），本次跳过固件版本检查",
+        log_fw_match: "固件版本与最新发布版本一致（{0}）",
+        log_fw_mismatch: "固件版本不一致：设备 {0}，最新 {1}",
+        log_fw_newer: "设备固件 {0} 比站点发布版本 {1} 更新（可能是开发版本），无需升级，未提示",
+        log_fw_uncomparable: "无法比较固件版本：设备 {0}，站点 {1}，未提示",
+        log_dfu_sent: "已发送 AT+DEV.DFU，设备将断开并重启为 DFU 模式",
+        log_dfu_failed: "发送 AT+DEV.DFU 失败: ",
     },
     en: {
         page_title: "PPR26 Serial Console",
@@ -180,6 +201,27 @@ const I18N = {
         log_disconnected: "Device disconnected",
         log_please_connect: "Please connect the device first",
         log_unexpected: "Unexpected response:",
+
+        /* Firmware version check (against firmware/VERSION; notice + auto DFU only when the device is older) */
+        fw_modal_title: "Firmware version mismatch",
+        fw_modal_text: "The device runs firmware {0}; the latest release is {1}. The versions do not match — please upgrade the firmware first.",
+        fw_modal_note: "This notice cannot be dismissed: it disappears after upgrading to the latest version and reconnecting (or clicking Check Again).",
+        fw_modal_upgrade: "Go to Upgrade",
+        fw_modal_recheck: "Check Again",
+        fw_dfu_sending: "Switching the device to DFU mode...",
+        fw_dfu_sent: "AT+DEV.DFU sent: the device disconnects and reboots into DFU mode; next, click \"Go to Upgrade\".",
+        fw_dfu_failed: "Automatic DFU entry failed: ",
+        fw_recheck_disconnected: "Device not connected: connect the device first, or go straight to the upgrade page.",
+        fw_recheck_in_dfu: "The device is in DFU mode (the serial port is gone): click \"Go to Upgrade\" to continue.",
+        err_version_invalid: "Invalid VERSION file (line 1 must be the firmware version)",
+        log_fw_latest: "Latest firmware version: {0}",
+        log_fw_latest_unknown: "Latest firmware version unavailable ({0}); skipping the version check",
+        log_fw_match: "Firmware version matches the latest release ({0})",
+        log_fw_mismatch: "Firmware version mismatch: device {0}, latest {1}",
+        log_fw_newer: "Device firmware {0} is newer than the published release ({1}) — most likely a development build; no notice shown",
+        log_fw_uncomparable: "Cannot compare firmware versions (device {0}, site {1}); no notice shown",
+        log_dfu_sent: "AT+DEV.DFU sent; the device disconnects and reboots into DFU mode",
+        log_dfu_failed: "Failed to send AT+DEV.DFU: ",
     }
 };
 
@@ -201,6 +243,7 @@ function applyLang() {
     document.documentElement.setAttribute("lang", currentLang);
     renderInfo();
     renderValues();   // “开路”等提示文本随语言切换更新
+    renderFwModal();  // 版本不一致提示按当前语言重绘
     // 连接状态文本不参与 data-i18n 批量替换，按当前语言重新渲染。
     setConnected(dev.isOpen());
 }
@@ -227,6 +270,157 @@ function toggleTheme() {
     const next = current === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("theme", next);
+}
+
+// ------------------------------------------------------------------
+// 固件版本检查（站点 firmware/VERSION）
+// ------------------------------------------------------------------
+
+/* VERSION 第一行是最新固件版本号，第二行是固件文件名（升级页面用）。
+   先试部署后的相对路径（/serial/ → /firmware/），再试直接用仓库根提供静态
+   文件时的路径（/webui/serial/ → /firmware/），本地调试两种服务方式都能用。 */
+const FW_DIRS = ["../firmware/", "../../firmware/"];
+
+let latestVersion = null;   // 取不到最新版本时跳过检查，只记日志
+let fwMismatch = null;      // { device, latest, deviceAhead }：语言切换时按当前语言重绘
+let dfuRequested = false;   // 本次连接是否已自动发过 AT+DEV.DFU（避免重复重启）
+
+const elFwModal = document.getElementById("fwModal");
+const elFwModalText = document.getElementById("fwModalText");
+const elFwModalDfu = document.getElementById("fwModalDfu");
+const elFwModalStatus = document.getElementById("fwModalStatus");
+
+/** VERSION 文件解析：空行与 `#` 开头的注释行忽略，第一行是版本号。 */
+function parseVersionFile(text) {
+    const lines = String(text).split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line !== "" && !line.startsWith("#"));
+    if (lines.length === 0) {
+        throw new Error(t("err_version_invalid"));
+    }
+    return lines[0];
+}
+
+/** 读取站点上的最新固件版本号（firmware/VERSION 第一行）。 */
+async function loadLatestVersion() {
+    const errors = [];
+    for (const dir of FW_DIRS) {
+        try {
+            const resp = await fetch(dir + "VERSION", { cache: "no-store" });
+            if (!resp.ok) {
+                errors.push(`${dir}VERSION HTTP ${resp.status}`);
+                continue;
+            }
+            latestVersion = parseVersionFile(await resp.text());
+            log(t("log_fw_latest").replace("{0}", latestVersion));
+            return latestVersion;
+        } catch (e) {
+            errors.push(e.message);
+        }
+    }
+    log(t("log_fw_latest_unknown").replace("{0}", errors.join("; ")), "warn");
+    return null;
+}
+
+function renderFwModal() {
+    elFwModalText.textContent = fwMismatch
+        ? t("fw_modal_text").replace("{0}", fwMismatch.device).replace("{1}", fwMismatch.latest)
+        : "";
+}
+
+/**
+ * 比较两个版本号：1 = a 更新，-1 = a 更旧，0 = 相同，null = 无法比较。
+ * 只取数字段比较，因此 "FW 1.0.1" 与 "1.0.1" 等价，"FW 1.0.10" 大于 "FW 1.0.9"。
+ */
+function compareVersions(a, b) {
+    const parse = text => {
+        const match = String(text || "").match(/\d+(?:\.\d+)*/);
+        return match ? match[0].split(".").map(Number) : null;
+    };
+    const va = parse(a);
+    const vb = parse(b);
+    if (!va || !vb) return null;
+    for (let i = 0; i < Math.max(va.length, vb.length); i++) {
+        const x = va[i] || 0;
+        const y = vb[i] || 0;
+        if (x !== y) return x > y ? 1 : -1;
+    }
+    return 0;
+}
+
+/** 提示框内的 DFU 状态行："" = 进行中，ok = 已进入，err = 失败。 */
+function setDfuLine(kind, text) {
+    elFwModalDfu.textContent = text;
+    elFwModalDfu.className = kind ? `modal-dfu ${kind}` : "modal-dfu";
+}
+
+/**
+ * 版本不一致时自动让设备进入 DFU 模式（AT+DEV.DFU），省去按后面板按键。
+ *
+ * 设备回 OK 后立即断开 USB 并重启为 DFU 设备，OK 可能来不及送达上位机，
+ * 所以**以串口是否断开作为成功判据**：断开（含等待 OK 超时）都算已进入 DFU，
+ * 只有设备仍在线且明确报错时才算失败。
+ */
+async function enterDfuMode() {
+    if (dfuRequested || !dev.isOpen()) return;
+    dfuRequested = true;
+    setDfuLine("", t("fw_dfu_sending"));
+    try {
+        await dev.command("AT+DEV.DFU");
+        setDfuLine("ok", t("fw_dfu_sent"));
+        log(t("log_dfu_sent"), "ok");
+    } catch (e) {
+        if (dev.isOpen()) {
+            setDfuLine("err", t("fw_dfu_failed") + e.message);
+            log(t("log_dfu_failed") + e.message, "error");
+        } else {
+            // 串口已随重启断开：这就是 DFU 切换成功的表现。
+            setDfuLine("ok", t("fw_dfu_sent"));
+            log(t("log_dfu_sent"), "ok");
+        }
+    }
+}
+
+/**
+ * 连接成功（以及手动刷新）后比对设备固件与站点最新发布版本。
+ * **只有设备固件比发布版本旧**时才弹出不可关闭的提示（并自动进入 DFU 模式）；
+ * 版本一致、设备更新（开发版本）、版本号无法比较时都不打扰用户，只记日志。
+ */
+async function checkFirmwareVersion() {
+    if (!latestVersion) {
+        await loadLatestVersion();
+    }
+    const deviceVersion = deviceInfo ? deviceInfo.fw : null;
+    if (!latestVersion || !deviceVersion) {
+        return;   // 任一侧拿不到版本号就不判断，避免误报
+    }
+
+    const order = compareVersions(deviceVersion, latestVersion);
+
+    if (order !== -1) {
+        // 一致 / 设备更新 / 无法比较：清除提示，不进入 DFU。
+        fwMismatch = null;
+        dfuRequested = false;
+        elFwModalStatus.textContent = "";
+        setDfuLine("", "");
+        elFwModal.hidden = true;
+        if (order === 0) {
+            log(t("log_fw_match").replace("{0}", latestVersion), "ok");
+        } else if (order === 1) {
+            log(t("log_fw_newer").replace("{0}", deviceVersion).replace("{1}", latestVersion));
+        } else {
+            log(t("log_fw_uncomparable")
+                .replace("{0}", deviceVersion).replace("{1}", latestVersion), "warn");
+        }
+        return;
+    }
+
+    // 设备更旧：弹出提示，并自动发送 AT+DEV.DFU。
+    fwMismatch = { device: deviceVersion, latest: latestVersion };
+    renderFwModal();
+    elFwModal.hidden = false;
+    log(t("log_fw_mismatch").replace("{0}", deviceVersion).replace("{1}", latestVersion), "error");
+    await enterDfuMode();
 }
 
 // ------------------------------------------------------------------
@@ -798,6 +992,7 @@ async function refreshAll() {
     deviceState = await dev.readState();
     renderInfo();
     syncInputsFromState();
+    await checkFirmwareVersion();
 }
 
 /** Run an action and report exceptions to the log. */
@@ -827,6 +1022,7 @@ document.getElementById("langToggle").addEventListener("click", toggleLang);
 document.getElementById("btnConnect").addEventListener("click", () => run(async () => {
     if (connecting) return;   // 忽略连接过程中的重复点击
     connecting = true;
+    dfuRequested = false;     // 新的一次连接：允许再次自动进入 DFU
     log(t("log_connecting"));
     setConnected(false);
     elStatus.textContent = t("status_connecting");
@@ -975,6 +1171,25 @@ document.getElementById("btnClearLog").addEventListener("click", () => {
     elLog.textContent = "";
 });
 
+// 版本不一致提示里的“重新检测”：重新读取设备固件版本再比对一次；
+// 一致则提示自动消失，否则保持显示（该提示没有关闭按钮）。
+document.getElementById("fwModalRecheck").addEventListener("click", async () => {
+    if (!dev.isOpen() || !deviceInfo) {
+        // 自动进 DFU 后串口会消失，这里给一句对应的提示而不是泛泛的“未连接”。
+        elFwModalStatus.textContent = t(dfuRequested ? "fw_recheck_in_dfu" : "fw_recheck_disconnected");
+        return;
+    }
+    elFwModalStatus.textContent = "";
+    try {
+        deviceInfo.fw = await dev.query("AT+DEV.FWVER?", "DEV.FWVER");
+        renderInfo();
+        await checkFirmwareVersion();
+    } catch (e) {
+        // 设备可能在提示弹出后被拔掉；错误显示在提示框内（日志被提示框挡住）。
+        elFwModalStatus.textContent = e.message;
+    }
+});
+
 dev.onDisconnect = () => {
     setConnected(false);
     log(t("log_disconnected"), "error");
@@ -990,3 +1205,5 @@ if (!navigator.serial) {
     log(t("log_unsupported"), "error");
     document.getElementById("btnConnect").disabled = true;
 }
+// 提前取回最新固件版本，连接后即可直接比对（失败只记日志，连接时再试）。
+loadLatestVersion();

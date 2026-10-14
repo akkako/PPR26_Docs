@@ -26,14 +26,22 @@ docs/              MkDocs 文档源码
   docs/zh_CN/      中文文档（含各自的 assets/，即主题 Logo）
   docs/en/         英文文档（与中文目录结构镜像）
 webui/             网页上位机源码
-  bootloader/      Bootloader 升级工具
+  bootloader/      Bootloader 升级工具（固件自动从站点 firmware/ 加载）
   portal/          工具中心入口页
-  serial/          串口上位机（WebSerial 网页版）
+  serial/          串口上位机（WebSerial 网页版，连接后校验固件版本）
+firmware/          设备固件
+  VERSION          第一行=最新版本号，第二行=固件文件名（与 VERSION 同目录）
+  *.bin            随版本发布的固件镜像（*_pack.bin）
 tools/             Python 上位机脚本
 .github/workflows/
-  deploy-docs.yml  构建 MkDocs 并部署到 GitHub Pages
+  deploy-docs.yml  构建 MkDocs 并部署到 GitHub Pages（含 firmware/）
   build-tools.yml  用 PyInstaller 打包 Python 工具（Win32）并发布 Release
 ```
+
+`firmware/VERSION` 是**固件版本的唯一出处**：升级页面（`/bootloader/`）据此自动加载固件
+（无需选择文件），串口上位机（`/serial/`）连接设备后据此比对 `AT+DEV.FWVER?`，
+版本不一致时弹出不可关闭的升级提示。发布新固件时：把镜像放进 `firmware/`，
+并把 `VERSION` 的两行改成新的版本号与文件名。
 
 文档为两套独立站点、各自构建（`mkdocs build -f docs/mkdocs.yml` / `-f docs/mkdocs.en.yml`），
 部署后分别位于 `/docs/zh_CN/` 与 `/docs/en/`，两站右上角可互相切换（当前页对应页，见 `docs/hooks/`）。

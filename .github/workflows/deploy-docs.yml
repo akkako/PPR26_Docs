@@ -58,6 +58,12 @@ jobs:
           # 5) 串口上位机（WebSerial）-> /serial/
           cp -r webui/serial/. site/serial/
 
+          # 6) 固件（VERSION + 发布镜像）-> /firmware/
+          #    升级工具与串口上位机用 ../firmware/VERSION 判断最新版本：
+          #    第一行版本号，第二行固件文件名（与 VERSION 同目录）。
+          mkdir -p site/firmware
+          cp -r firmware/. site/firmware/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
