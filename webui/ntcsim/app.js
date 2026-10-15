@@ -33,6 +33,10 @@ const TEMP_LIMIT_MAX_C = 300;
 /* 内部温度轮询间隔（只读 AT+DEV.TEMP?） */
 const TEMP_POLL_MS = 5000;
 
+/* 滚轮累积阈值：鼠标一格在 Chrome 里是 100 像素、Firefox 是 3 行，统一折算成约 100 */
+const WHEEL_STEP_DELTA = 100;
+const WHEEL_MAX_NOTCHES = 3;   // 单次事件最多走几步，避免触控板甩动时温度飞掉
+
 const LS_AUTO_APPLY = "ntcsim_auto_apply";        // 控制台「自动设置」是否下发
 const LS_CURVE_APPLY = "ntcsim_curve_apply";      // 曲线选点是否自动下发
 
@@ -1106,6 +1110,7 @@ let deviceTempC = null;
 let connecting = false;
 let tempTimer = 0;
 let curveDragging = false; // 是否正在曲线上拖拽选点
+let wheelAccum = 0;        // 滚轮累积量（不同设备一格的大小不同，累积到一格再走一步）
 
 const dev = new Ppr26Serial();
 
@@ -1795,6 +1800,32 @@ function renderCurve() {
         if (curveDragging) return;     // 拖拽中（指针已捕获）不隐藏读数
         tip.hidden = true;
         hoverLine.setAttribute("opacity", 0);
+    };
+
+    // 滚轮：向上滚一格 = 温度增加一个步长，向下滚一格 = 减少一个步长
+    // （与「− 步进 / ＋ 步进」完全同一套语义：受「步长」输入与温度范围约束，
+    //   是否下发由温度控制台的「自动设置」决定）
+    elCurve.onwheel = (event) => {
+        event.preventDefault();        // 鼠标在图表上时不要让页面跟着滚动
+        const unit = event.deltaMode === 1 ? 33 : (event.deltaMode === 2 ? 100 : 1);
+        const delta = event.deltaY * unit;
+        if (delta === 0) return;
+        if (wheelAccum !== 0 && Math.sign(delta) !== Math.sign(wheelAccum)) {
+            wheelAccum = 0;            // 反向时先清零，避免来回抵消
+        }
+        wheelAccum += delta;
+        // deltaY < 0 是"向上滚"，对应温度增加，所以这里取负号
+        let notches = -Math.trunc(wheelAccum / WHEEL_STEP_DELTA);
+        if (notches === 0) return;
+        wheelAccum += notches * WHEEL_STEP_DELTA;
+        notches = Math.max(-WHEEL_MAX_NOTCHES, Math.min(WHEEL_MAX_NOTCHES, notches));
+
+        const step = parsePositive(elInputStepC.value);
+        if (step === null || !(step > 0)) {
+            log(t("msg_step_invalid"), "warn");
+            return;
+        }
+        stepBy(notches * step);
     };
 }
 

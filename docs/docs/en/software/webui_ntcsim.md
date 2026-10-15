@@ -143,6 +143,7 @@ are in the input fields and the readouts.
 | ---- | ---- | ---- |
 | Enter a temperature and click **Calculate** (or press Enter) | yes | **when Auto apply is on** |
 | **- Step** / **+ Step** (step size is editable) | yes | **when Auto apply is on** |
+| Scroll the mouse wheel over the curve (+1 step up / -1 step down) | yes | **when Auto apply is on** |
 | Click / drag on the curve to pick a point | yes | **when the curve's Auto apply is checked**, on release |
 | **Use as temperature** (from a resistance) | yes | no (updates only) |
 | **Apply** | no | **always sends** the current target |
@@ -229,6 +230,9 @@ you the actual result.
 - **Hollow dot ○**: where the device's actual output is (shown once connected, so the deviation is visible);
 - **Shaded band ▓**: the device's allowed window (shown once limits are enabled — see the next section);
 - **Hover**: a (temperature, resistance) readout for that position (it disappears when you move away);
+- **Mouse wheel**: one notch up **increases** the temperature by one step, one notch down
+  **decreases** it (same semantics as the -/+ Step buttons, bound by the step size and the temperature
+  range; the page does not scroll while the pointer is over the chart);
 - **Click**: sets that temperature as the simulated point; **hold the left button and drag**: the
   simulated point follows the cursor horizontally, and releasing finalises it.
   Whether it is sent is controlled by **Auto apply** at the top right of the curve card: when
