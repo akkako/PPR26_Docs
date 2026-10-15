@@ -31,6 +31,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install mkdocs mkdocs-material
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install esbuild
+        run: |
+          # 仅用于压缩发布产物里的 JS/CSS；固定版本，避免上游更新导致产物悄悄变化
+          npm install --global esbuild@0.28.2
+          esbuild --version
+
       - name: Build Chinese documentation
         run: mkdocs build --config-file docs/mkdocs.yml
 
@@ -66,6 +77,12 @@ jobs:
           #    第一行版本号，第二行固件文件名（与 VERSION 同目录）。
           mkdir -p site/firmware
           cp -r firmware/. site/firmware/
+
+      - name: Minify site assets
+        run: |
+          # 发布产物瘦身：JS/CSS 压缩、HTML 去注释、search_index.json 紧凑化、删 sourcemap、
+          # 资源引用加内容哈希（脚本会打印处理前后的体积对比；详见脚本头部说明）
+          python .github/scripts/minify_site.py site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
