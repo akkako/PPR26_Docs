@@ -33,7 +33,8 @@ const TEMP_LIMIT_MAX_C = 300;
 /* 内部温度轮询间隔（只读 AT+DEV.TEMP?） */
 const TEMP_POLL_MS = 5000;
 
-const LS_AUTO_APPLY = "ntcsim_auto_apply";   // 与 theme/lang 同级：用户偏好记忆
+const LS_AUTO_APPLY = "ntcsim_auto_apply";        // 控制台「自动设置」是否下发
+const LS_CURVE_APPLY = "ntcsim_curve_apply";      // 曲线选点是否自动下发
 
 // ------------------------------------------------------------------
 // I18N
@@ -67,7 +68,7 @@ const I18N = {
         /* 模型 */
         title_model: "NTC 模型",
         title_limits: "设备限值窗口",
-        label_limit_enable: "启用限值（RES.LIMIT=1）",
+        label_limit_enable: "启用限值",
         label_min_ohm: "最小阻值",
         label_max_ohm: "最大阻值",
         btn_write_limits: "写入限制值",
@@ -139,6 +140,8 @@ const I18N = {
         title_curve: "温度-阻值曲线",
         label_range: "温度范围（℃）",
         label_log_axis: "对数阻值轴",
+        label_curve_auto_apply: "自动设置",
+        title_curve_auto_apply: "勾选后：在曲线上选点（单击，或拖拽松手）会直接下发；不勾选：只更新温度，需手动点「应用」。",
         legend_current: "当前设定点",
         legend_pv: "设备 PV",
         legend_window: "允许窗口",
@@ -153,6 +156,8 @@ const I18N = {
         msg_bad_temp: "温度输入无效",
         msg_bad_number: "数值输入无效",
         msg_temp_clamped: "温度已限制在设定范围内",
+        msg_temp_clamped_to_range: "该温度对应的阻值超出设备能输出的范围（5 Ω ~ 4 MΩ），已夹到边界",
+        msg_temp_clamped_to_limit: "该温度对应的阻值超出设备限值窗口，已夹到窗口边界",
         msg_step_invalid: "步长必须为正数",
         msg_not_connected_calc_only: "未连接设备：已计算，未下发",
         msg_nothing_calculated: "还没有可下发的目标阻值，请先点「计算」",
@@ -176,6 +181,8 @@ const I18N = {
         log_disconnected: "设备已断开",
         log_unexpected: "收到非预期响应:",
         log_auto_apply_on: "自动设置已开启：计算/步进会直接下发",
+        log_curve_apply_on: "曲线「自动设置」已开启：选点（松手）会直接下发",
+        log_curve_apply_off: "曲线「自动设置」已关闭：选点只更新温度，需手动点「应用」",
         log_auto_apply_off: "自动设置已关闭：需手动点「应用」下发",
 
         /* 错误 */
@@ -237,7 +244,7 @@ const I18N = {
         /* Model */
         title_model: "NTC Model",
         title_limits: "Device Limit Window",
-        label_limit_enable: "Enable limits (RES.LIMIT=1)",
+        label_limit_enable: "Enable limits",
         label_min_ohm: "Minimum",
         label_max_ohm: "Maximum",
         btn_write_limits: "Write limits",
@@ -309,6 +316,8 @@ const I18N = {
         title_curve: "Temperature-Resistance Curve",
         label_range: "Temp range (C)",
         label_log_axis: "Log resistance axis",
+        label_curve_auto_apply: "Auto apply",
+        title_curve_auto_apply: "When checked, selecting a point on the curve (click, or drag and release) is sent immediately; when unchecked it only updates the temperature - press Apply to send.",
         legend_current: "Current setpoint",
         legend_pv: "Device PV",
         legend_window: "Allowed window",
@@ -323,6 +332,8 @@ const I18N = {
         msg_bad_temp: "Invalid temperature",
         msg_bad_number: "Invalid number",
         msg_temp_clamped: "Temperature clamped to the configured range",
+        msg_temp_clamped_to_range: "This temperature is outside what the device can output (5 ohm .. 4 Mohm); clamped to the boundary",
+        msg_temp_clamped_to_limit: "This temperature is outside the device limit window; clamped to the window boundary",
         msg_step_invalid: "Step size must be positive",
         msg_not_connected_calc_only: "Not connected: computed only, nothing sent",
         msg_nothing_calculated: "No target yet - press Calculate first",
@@ -346,6 +357,8 @@ const I18N = {
         log_disconnected: "Device disconnected",
         log_unexpected: "Unexpected response:",
         log_auto_apply_on: "Auto apply on: calculate/step will send immediately",
+        log_curve_apply_on: "Curve Auto apply on: releasing a selection sends it immediately",
+        log_curve_apply_off: "Curve Auto apply off: a selection only updates the temperature - press Apply to send",
         log_auto_apply_off: "Auto apply off: press Apply to send",
 
         /* Errors */
@@ -1086,6 +1099,7 @@ let deviceState = null;
 let deviceTempC = null;
 let connecting = false;
 let tempTimer = 0;
+let curveDragging = false; // 是否正在曲线上拖拽选点
 
 const dev = new Ppr26Serial();
 
@@ -1139,6 +1153,7 @@ const elBtnWriteLimits = document.getElementById("btnWriteLimits");
 const elRangeMin = document.getElementById("rangeMin");
 const elRangeMax = document.getElementById("rangeMax");
 const elChkLogAxis = document.getElementById("chkLogAxis");
+const elChkCurveApply = document.getElementById("chkCurveApply");
 const elCurve = document.getElementById("curve");
 const elCurveWrap = document.getElementById("curveWrap");
 const elCurveTip = document.getElementById("curveTip");
@@ -1413,6 +1428,23 @@ function renderPointsTable(container, points, options = {}) {
 // 曲线
 // ------------------------------------------------------------------
 
+/**
+ * 夹取并在必要时给出原因（供输入路径写日志用）：
+ * 返回值 reason 为 "" （无需夹取）、"limit"（被设备限值窗口限制）或 "hardware"（被硬件量程限制）。
+ */
+function clampWithReason(tC) {
+    const clamped = clampToAllowedWindow(tC);
+    if (clamped === tC) return { tC: tC, reason: "" };
+    let reason = "hardware";
+    try {
+        const mohm = Math.round(ui.model.resistance(tC) * 1000);
+        if (mohm >= RES_MIN_MOHM && mohm <= RES_MAX_MOHM) reason = "limit";
+    } catch (e) {
+        /* 取不到阻值就按硬件量程处理 */
+    }
+    return { tC: clamped, reason: reason };
+}
+
 /** dR/dT（Ω/℃），由模型数值微分得到（NTC 为负值） */
 function resistanceSlopeOhmPerC(tC, h = 0.01) {
     try {
@@ -1423,15 +1455,30 @@ function resistanceSlopeOhmPerC(tC, h = 0.01) {
 }
 
 /**
- * 启用限值窗口时，把温度夹到"阻值落在窗口内"的最近点。
+ * 设备实际允许的阻值窗口（mΩ）：
+ *   硬件绝对量程 5 Ω ~ 4 MΩ **始终生效**（超出就设不了，必须限制）；
+ *   设备限值窗口（启用限值时）再往里收一层。
+ */
+function allowedWindowMohm() {
+    let lo = RES_MIN_MOHM;
+    let hi = RES_MAX_MOHM;
+    if (deviceState && deviceState.limitEnable) {
+        lo = Math.max(lo, deviceState.min);
+        hi = Math.min(hi, deviceState.max);
+    }
+    return [lo, hi];
+}
+
+/**
+ * 把温度夹到"阻值落在允许窗口内"的最近点（绝对量程始终参与，限值窗口启用时再叠加）。
  *
  * 不能只取边界温度：温度要四舍五入到 1 mK（与温度框一致）、目标阻值还要取整到整数 mΩ，
  * 两次取整都可能把结果挤到窗口外一点点（例如 MIN=50 kΩ 时算出 49.999931 kΩ）。
  * 因此这里在窗口内侧做一次收敛校验——按"最终下发的整数 mΩ 是否在窗口内"判据，
  * 从 1 mΩ 余量开始逐步放大，直到满足为止（余量折算成温度最多几十 mK，用户看不出来）。
  */
-function clampToLimitWindow(tC) {
-    if (!deviceState || !deviceState.limitEnable || !ui.model) return tC;
+function clampToAllowedWindow(tC) {
+    if (!ui.model) return tC;
     let r;
     try {
         r = ui.model.resistance(tC);
@@ -1440,8 +1487,9 @@ function clampToLimitWindow(tC) {
     }
     if (!Number.isFinite(r)) return tC;
 
-    const minOhm = deviceState.min / 1000;
-    const maxOhm = deviceState.max / 1000;
+    const [minMohm, maxMohm] = allowedWindowMohm();
+    const minOhm = minMohm / 1000;
+    const maxOhm = maxMohm / 1000;
     if (r >= minOhm && r <= maxOhm) return tC;
 
     const resistanceTooBig = r > maxOhm;          // 阻值偏大 → 需要降低阻值 → 温度升高
@@ -1468,7 +1516,7 @@ function clampToLimitWindow(tC) {
         } catch (e) {
             return Number(bound.toFixed(3));
         }
-        if (mohm >= deviceState.min && mohm <= deviceState.max) return candidate;
+        if (mohm >= minMohm && mohm <= maxMohm) return candidate;
         marginOhm *= 4;
     }
     return Number(bound.toFixed(3));
@@ -1648,14 +1696,14 @@ function renderCurve() {
         }
     }
 
-    // 悬停交互
+    // ---------------- 交互：悬停读数 / 单击设点 / 左键拖拽平移 ----------------
     const tip = elCurveTip;
     const hoverLine = add("line", {
         x1: 0, y1: margin.t, x2: 0, y2: margin.t + plotH,
         stroke: colors.accent, "stroke-width": 1, "stroke-dasharray": "3 3", opacity: 0,
     });
 
-    const tempAtEvent = (event) => {
+    const pointerTempC = (event) => {
         const rect = elCurve.getBoundingClientRect();
         const scale = rect.width / width;
         const x = (event.clientX - rect.left) / scale;
@@ -1664,20 +1712,17 @@ function renderCurve() {
         return tMin + frac * (tMax - tMin);
     };
 
-    elCurve.onmousemove = (event) => {
-        const tC = tempAtEvent(event);
-        if (tC === null || !ui.model) {
-            tip.hidden = true;
-            hoverLine.setAttribute("opacity", 0);
-            return;
-        }
+    const updateHover = (event) => {
+        const tC = pointerTempC(event);
         let rOhm = null;
-        try {
-            rOhm = ui.model.resistance(tC);
-        } catch (e) {
-            rOhm = null;
+        if (tC !== null && ui.model) {
+            try {
+                rOhm = ui.model.resistance(tC);
+            } catch (e) {
+                rOhm = null;
+            }
         }
-        if (rOhm === null || !Number.isFinite(rOhm)) {
+        if (tC === null || rOhm === null || !Number.isFinite(rOhm)) {
             tip.hidden = true;
             hoverLine.setAttribute("opacity", 0);
             return;
@@ -1692,17 +1737,57 @@ function renderCurve() {
         tip.style.top = Math.max(event.clientY - wrapRect.top - 34, 4) + "px";
     };
 
-    elCurve.onmouseleave = () => {
-        tip.hidden = true;
-        hoverLine.setAttribute("opacity", 0);
+    // 设置模拟点：光标位置的温度写入温度框并只更新本地模拟点（不下发）
+    const setPointAt = (event) => {
+        let tC = pointerTempC(event);
+        if (tC === null) return;
+        tC = clampToAllowedWindow(tC);  // 夹到设备可输出的范围内（绝对量程 + 限值窗口）
+        elInputTemp.value = tC.toFixed(3);
+        doCalc({ noApply: true });     // 只更新模拟点，大字温度保持绿色
     };
 
-    elCurve.onclick = (event) => {
-        let tC = tempAtEvent(event);
-        if (tC === null) return;
-        tC = clampToLimitWindow(tC);   // 启用限值时只允许选窗口内的点
-        elInputTemp.value = tC.toFixed(3);
-        doCalc({ noApply: true });     // 只更新模拟点，不下发（大字温度保持绿色）
+    elCurve.onpointerdown = (event) => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;   // 只处理鼠标左键
+        elCurve.setPointerCapture(event.pointerId);
+        curveDragging = true;
+        elCurve.classList.add("dragging");
+        tip.hidden = true;
+        setPointAt(event);             // 按下即选点
+    };
+
+    elCurve.onpointermove = (event) => {
+        if (curveDragging) {
+            setPointAt(event);         // 拖拽选点：模拟点跟着光标横向移动
+            return;
+        }
+        updateHover(event);
+    };
+
+    elCurve.onpointerup = async (event) => {
+        if (!curveDragging) return;
+        curveDragging = false;
+        elCurve.classList.remove("dragging");
+        try {
+            elCurve.releasePointerCapture(event.pointerId);
+        } catch (e) {
+            /* 指针已释放 */
+        }
+        setPointAt(event);             // 松手时以最终位置为准
+        // 勾选了曲线旁的「自动设置」才下发；拖拽时只在松手这一次下发，避免连着驱动设备
+        if (elChkCurveApply.checked) {
+            await applyTarget();
+        }
+    };
+
+    elCurve.onpointercancel = () => {
+        curveDragging = false;
+        elCurve.classList.remove("dragging");
+    };
+
+    elCurve.onpointerleave = () => {
+        if (curveDragging) return;     // 拖拽中（指针已捕获）不隐藏读数
+        tip.hidden = true;
+        hoverLine.setAttribute("opacity", 0);
     };
 }
 
@@ -1918,6 +2003,17 @@ async function doCalc({ noApply = false } = {}) {
     if (!ui.model) {
         log(t("msg_no_model"), "warn");
         return null;
+    }
+
+    // 换算结果超出设备能输出的范围时，把温度夹到边界（与曲线选点同一套规则），
+    // 保证模拟点始终是设备真的能输出的值
+    const clampedByWindow = clampWithReason(value);
+    if (clampedByWindow.reason) {
+        value = clampedByWindow.tC;
+        elInputTemp.value = value.toFixed(3);
+        log(t(clampedByWindow.reason === "limit"
+            ? "msg_temp_clamped_to_limit"
+            : "msg_temp_clamped_to_range"), "warn");
     }
 
     let rOhm;
@@ -2416,6 +2512,10 @@ function bindEvents() {
         });
     }
     elChkLogAxis.addEventListener("change", renderCurve);
+    elChkCurveApply.addEventListener("change", () => {
+        localStorage.setItem(LS_CURVE_APPLY, elChkCurveApply.checked ? "1" : "0");
+        log(elChkCurveApply.checked ? t("log_curve_apply_on") : t("log_curve_apply_off"));
+    });
 
     // 日志抽屉
     elLogToggle.addEventListener("click", () => {
@@ -2473,6 +2573,7 @@ function init() {
     initTheme();
 
     elChkAuto.checked = localStorage.getItem(LS_AUTO_APPLY) !== "0";
+    elChkCurveApply.checked = localStorage.getItem(LS_CURVE_APPLY) === "1";   // 默认不勾选
     elModelTabs.querySelector('button[data-mode="beta"]').classList.add("active");
     elBetaTabs.querySelector('button[data-sub="direct"]').classList.add("active");
     elShTabs.querySelector('button[data-sub="direct"]').classList.add("active");

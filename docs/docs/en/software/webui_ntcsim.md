@@ -62,7 +62,7 @@ The page has three columns (narrow screens stack them into two columns / one col
 | **Left · NTC Model** | Three modelling methods (pick one; B-value and SH each have "enter parameters / fit points" sub-methods), parameter fields and calibration-point table, CSV import; a compact summary of the active model at the bottom |
 | **Left · Device Limit Window** | Enable limits, minimum/maximum resistance, write limits — see [Device Limit Window](#device-limit-window) |
 | **Middle · Temperature Console** | Simulated temperature (large), the four readouts below it (Target / SP / PV / TP), temperature input with Calculate/Apply, Auto apply, temperature stepping, resistance-to-temperature |
-| **Right · Curve** | Temperature-resistance curve, markers for the simulated point and the device's actual value, allowed-window band, hover and click interaction |
+| **Right · Curve** | Temperature-resistance curve, markers for the simulated point and the device's actual value, allowed-window band; hover readout, click or drag to pick a point, plus the "Log resistance axis" and "Auto apply" switches |
 | **Bottom · AT Log** | Collapsed by default. The page shows no message text at all; expand this when you need to know why something did not happen |
 
 ## Choosing an NTC Model (pick one of three)
@@ -135,7 +135,7 @@ the input fields and the readouts.
 | ---- | ---- | ---- |
 | Enter a temperature and click **Calculate** (or press Enter) | yes | **when Auto apply is on** |
 | **- Step** / **+ Step** (step size is editable) | yes | **when Auto apply is on** |
-| Click the curve | yes | no (updates only) |
+| Click / drag on the curve to pick a point | yes | **when the curve's Auto apply is checked**, on release |
 | **Use as temperature** (from a resistance) | yes | no (updates only) |
 | **Apply** | no | **always sends** the current target |
 
@@ -144,9 +144,10 @@ every send requires pressing **Apply**. The switch is remembered in the browser.
 
 !!! tip "The colour of the large temperature is the send status"
     **Green = computed locally only** (nothing has been sent; the terminals are unchanged);
-    **red = already sent** (the device is outputting that resistance). Curve clicks and the
-    resistance-to-temperature conversion only update the local point, so the value stays green;
-    pressing Calculate / Step / Apply turns it red. One glance tells "computed" from "sent".
+    **red = already sent** (the device is outputting that resistance). Picking a point on the curve
+    (unless the curve's Auto apply is checked) and the resistance-to-temperature conversion only update
+    the local point, so the value stays green; pressing Calculate / Step / Apply — or picking a point
+    with the curve's Auto apply checked — turns it red. One glance tells "computed" from "sent".
 
 !!! note "The page shows no message text at all"
     Everything — including *why* something did not happen (invalid input, out of range, outside the
@@ -162,12 +163,15 @@ every send requires pressing **Apply**. The switch is remembered in the browser.
    changing values never shift the buttons below.
 3. With **Auto apply** on, step 1 already sent it; otherwise press **Apply**.
 
-The page checks the value first and will **not send** anything that fails the check; the reason goes to
-the AT log:
+Two limits decide what can be output, and **the simulated point always stays within what the device
+can really output**:
 
-- outside what the device can output (5 ohm .. 4 Mohm);
-- outside the **device limit window** (once limits are enabled — see [Device Limit Window](#device-limit-window));
-- no device connected.
+- The **hardware range (5 ohm .. 4 Mohm) always applies**: when the resistance for a temperature falls
+  outside it, the simulated point is clamped to the boundary (e.g. a 20 ohm model asked for 125 C can
+  only go to about 66 C / 5 ohm), and the AT log records why;
+- The **device limit window** (once limits are enabled — see [Device Limit Window](#device-limit-window))
+  narrows it further, with the same rule;
+- With no device connected the page only computes locally (the large temperature stays green).
 
 ### Stepping the Temperature
 
@@ -216,11 +220,18 @@ you the actual result.
 - **Filled dot ●**: the current simulated point (temperature and target resistance);
 - **Hollow dot ○**: where the device's actual output is (shown once connected, so the deviation is visible);
 - **Shaded band ▓**: the device's allowed window (shown once limits are enabled — see the next section);
-- **Hover**: a (temperature, resistance) readout for that position;
-- **Click**: sets that temperature as the simulated point (nothing is sent; press **Apply** afterwards).
-  With limits enabled, clicking outside the window lands on the closest position inside it, which is
-  **guaranteed to be accepted** by the device;
-- **Height**: the curve adapts to the card size.
+- **Hover**: a (temperature, resistance) readout for that position (it disappears when you move away);
+- **Click**: sets that temperature as the simulated point; **hold the left button and drag**: the
+  simulated point follows the cursor horizontally, and releasing finalises it.
+  Whether it is sent is controlled by **Auto apply** at the top right of the curve card: when
+  **checked**, releasing sends it immediately (a drag sends only once, on release, so the device is
+  never driven continuously); when **unchecked** (the default) it only updates the temperature — press
+  **Apply** or **Calculate** to send.
+  A picked point is clamped to **what the device can really output** (the hardware range 5 ohm ..
+  4 Mohm always applies, the limit window narrows it further), so a picked point is **guaranteed to be
+  accepted** by the device;
+- **Height**: the curve adapts to the card size; text inside the chart cannot be selected, so dragging
+  only moves the simulated point.
 
 ## Device Limit Window
 
@@ -308,3 +319,6 @@ tools.
   follow your actions.
 - Wiring and contact resistance are outside the conversion; mind the lead resistance at low resistances
   (below ~100 ohm).
+- The device can only output **5 ohm .. 4 Mohm** (hardware range): when a conversion falls outside it,
+  the page clamps the simulated point to the boundary, so you can never pick a value the device cannot
+  produce.

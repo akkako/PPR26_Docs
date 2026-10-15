@@ -257,7 +257,10 @@ h2 {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: 6px 8px;
+    /* 设备信息靠右对齐（与左侧的连接按钮分别占据一行的两端） */
+    margin-left: auto;
     font-size: 12.5px;
     font-variant-numeric: tabular-nums;
 }
@@ -699,6 +702,9 @@ select:disabled {
     /* 占满卡片剩余高度（不低于 260px），卡片变高时曲线跟着变高 */
     flex: 1 1 auto;
     min-height: 260px;
+    /* 图表内禁用文字选择：拖拽只平移视图，不会选中标签文字 */
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .curve-wrap svg {
@@ -706,6 +712,11 @@ select:disabled {
     width: 100%;
     height: 100%;
     touch-action: none;
+    cursor: crosshair;
+}
+
+.curve-wrap svg.dragging {
+    cursor: ew-resize;
 }
 
 .curve-tip {
