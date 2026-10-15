@@ -172,6 +172,9 @@ const I18N = {
         msg_out_of_data_range: "超出标定数据范围 {0}…{1} ℃（插值模式不外推）",
         msg_monotonic_bad: "警告：模型不单调，请检查标定点",
         msg_residual: "残差",
+        param_points: "标定点",
+        param_data_range: "数据范围",
+        param_warning: "⚠ 检查",
 
         /* 日志 */
         log_ready: "NTC 模拟器已加载（未连接也可换算）",
@@ -348,6 +351,9 @@ const I18N = {
         msg_out_of_data_range: "Outside the calibration data range {0}...{1} C (interpolation does not extrapolate)",
         msg_monotonic_bad: "Warning: the model is not monotonic - check the points",
         msg_residual: "Residual",
+        param_points: "Points",
+        param_data_range: "Data range",
+        param_warning: "⚠ Check",
 
         /* Log */
         log_ready: "NTC simulator loaded (works without a device)",
@@ -1084,7 +1090,7 @@ const ui = {
     csvName: "",
     model: null,              // ntc 模型实例
     modelError: "",
-    modelInfo: [],            // [label, value] 摘要行
+    modelParams: [],          // 参数小卡片：[{label, value, warn?, wide?}]
     simTempC: 25,
     targetMohm: null,
     sendMohm: null,
@@ -1197,7 +1203,9 @@ function readPoints(container) {
 function buildModel() {
     ui.model = null;
     ui.modelError = "";
-    ui.modelInfo = [];
+    ui.modelParams = [];
+    const addParam = (label, value, options = {}) =>
+        ui.modelParams.push({ label: label, value: value, warn: !!options.warn, wide: !!options.wide });
 
     try {
         if (ui.mode === "beta") {
@@ -1207,9 +1215,8 @@ function buildModel() {
                 if (r25 === null || b === null) throw new Error(t("msg_bad_number"));
                 const model = new ntc.BetaModel(r25, b);
                 ui.model = model;
-                ui.modelInfo = [
-                    t("mode_beta") + " · R25 " + shortOhm(r25 * 1000) + " · B " + shortNum(b) + " K",
-                ];
+                addParam("R25", shortOhm(r25 * 1000));
+                addParam("B", shortNum(b) + " K");
             } else if (ui.betaSub === "two") {
                 const t1 = parseTemp(document.getElementById("inT1").value);
                 const r1 = parsePositive(document.getElementById("inR1").value);
@@ -1220,20 +1227,17 @@ function buildModel() {
                 }
                 const model = ntc.betaFromTwoPoints([t1, r1], [t2, r2]);
                 ui.model = model;
-                ui.modelInfo = [
-                    t("beta_tab_two") + " · R25 " + shortOhm(model.r25 * 1000)
-                    + " · B " + shortNum(model.b) + " K",
-                ];
+                addParam("R25", shortOhm(model.r25 * 1000));
+                addParam("B", shortNum(model.b) + " K");
             } else {
                 const points = readPoints(elBetaPoints);
                 if (points.length < 2) throw new Error(t("msg_need_two_points"));
                 const result = ntc.fitBeta(points, { weights: "t" });
                 ui.model = result.model;
-                ui.modelInfo = [
-                    t("beta_tab_lsq") + " " + points.length + " 点 · R25 "
-                    + shortOhm(result.model.r25 * 1000) + " · B " + shortNum(result.model.b) + " K",
-                    t("msg_residual") + " " + formatMilliK(result.maxAbsC) + " mK",
-                ];
+                addParam("R25", shortOhm(result.model.r25 * 1000));
+                addParam("B", shortNum(result.model.b) + " K");
+                addParam(t("param_points"), String(points.length));
+                addParam(t("msg_residual"), formatMilliK(result.maxAbsC) + " mK");
             }
         } else if (ui.mode === "sh") {
             if (ui.shSub === "direct") {
@@ -1243,20 +1247,18 @@ function buildModel() {
                 if (a === null || b === null || c === null) throw new Error(t("msg_bad_number"));
                 const model = new ntc.SteinhartHartModel(a, b, c);
                 ui.model = model;
-                ui.modelInfo = [
-                    t("sh_tab_direct") + " · A " + shortNum(a) + " · B " + shortNum(b)
-                    + " · C " + shortNum(c),
-                ];
+                addParam("A", shortNum(a));
+                addParam("B", shortNum(b));
+                addParam("C", shortNum(c));
             } else {
                 const points = readPoints(elShPointsTable);
                 if (points.length < 3) throw new Error(t("msg_need_three_points"));
                 const result = ntc.fitSteinhartHart(points, { weights: "t" });
                 ui.model = result.model;
-                ui.modelInfo = [
-                    t("mode_sh") + " · A " + shortNum(result.model.a) + " · B " + shortNum(result.model.b)
-                    + " · C " + shortNum(result.model.c),
-                    t("msg_residual") + " " + formatMilliK(result.maxAbsC) + " mK",
-                ];
+                addParam("A", shortNum(result.model.a));
+                addParam("B", shortNum(result.model.b));
+                addParam("C", shortNum(result.model.c));
+                addParam(t("msg_residual"), formatMilliK(result.maxAbsC) + " mK");
             }
         } else {
             if (!ui.csvPoints || ui.csvPoints.length < 2) {
@@ -1268,21 +1270,19 @@ function buildModel() {
             if (ui.csvSub === "interp") {
                 const model = new CsvInterpModel(ui.csvPoints);
                 ui.model = model;
-                ui.modelInfo = [
-                    t("csv_mode_interp") + " " + model.points.length + " 点 · "
-                    + shortNum(model.dataMinC) + "…" + shortNum(model.dataMaxC) + " ℃",
-                ];
+                addParam(t("param_points"), String(model.points.length));
+                addParam(t("param_data_range"), shortNum(model.dataMinC) + "…"
+                    + shortNum(model.dataMaxC) + " ℃");
                 if (!model.monotonic) {
-                    ui.modelInfo.push(t("msg_monotonic_bad"));
+                    addParam(t("param_warning"), t("msg_monotonic_bad"), { warn: true, wide: true });
                 }
             } else {
                 const result = ntc.fitSteinhartHart(ui.csvPoints, { weights: "t" });
                 ui.model = result.model;
-                ui.modelInfo = [
-                    t("csv_mode_fit") + " · A " + shortNum(result.model.a)
-                    + " · B " + shortNum(result.model.b) + " · C " + shortNum(result.model.c),
-                    t("msg_residual") + " " + formatMilliK(result.maxAbsC) + " mK",
-                ];
+                addParam("A", shortNum(result.model.a));
+                addParam("B", shortNum(result.model.b));
+                addParam("C", shortNum(result.model.c));
+                addParam(t("msg_residual"), formatMilliK(result.maxAbsC) + " mK");
             }
         }
 
@@ -1297,16 +1297,17 @@ function buildModel() {
                 }
             };
             const [tMin, tMax] = currentRange();
-            ui.modelInfo.push(shortNum(tMin) + "…" + shortNum(tMax) + " ℃ · "
-                + safeOhm(tMin) + " … " + safeOhm(tMax));
+            addParam(shortNum(tMin) + " ℃", safeOhm(tMin));
+            addParam(shortNum(tMax) + " ℃", safeOhm(tMax));
             if (!isMonotonic(ui.model, tMin, tMax)) {
-                ui.modelInfo.push(t("msg_monotonic_bad"));
+                addParam(t("param_warning"), t("msg_monotonic_bad"), { warn: true, wide: true });
             }
         }
     } catch (e) {
         ui.model = null;
         ui.modelError = e.message;
-        ui.modelInfo = [t("msg_model_invalid") + e.message];
+        ui.modelParams = [{ label: t("param_warning"), value: t("msg_model_invalid") + e.message,
+                            warn: true, wide: true }];
     }
 
     renderModelSummary();
@@ -1331,9 +1332,15 @@ function isMonotonic(model, tMinC, tMaxC, samples = 48) {
     return true;
 }
 
+/** 参数小卡片：每个参数一格（标签 + 数值），比一整句话更好扫读 */
 function renderModelSummary() {
     if (!elModelSummary) return;
-    elModelSummary.innerHTML = ui.modelInfo.map(line => escapeHtml(line)).join("<br>");
+    elModelSummary.innerHTML = ui.modelParams.map(param =>
+        '<div class="param-tile' + (param.warn ? " warn" : "") + (param.wide ? " wide" : "") + '"'
+        + ' title="' + escapeHtml(param.label + " " + param.value) + '">'
+        + '<div class="param-label">' + escapeHtml(param.label) + "</div>"
+        + '<div class="param-value">' + escapeHtml(param.value) + "</div>"
+        + "</div>").join("");
 }
 
 function escapeHtml(text) {

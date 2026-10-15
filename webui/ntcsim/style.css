@@ -556,25 +556,57 @@ select:disabled {
 
 /* ---------------- 模型摘要 ---------------- */
 
+/* 当前模型的参数小卡片：每格一个参数（标签 + 数值） */
 .model-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
     margin-top: 14px;
     padding-top: 12px;
     border-top: 1px solid var(--border);
-    font-size: 12px;
-    line-height: 1.7;
+}
+
+.param-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+}
+
+.param-tile.wide {
+    grid-column: 1 / -1;
+}
+
+.param-label {
+    font-size: 10.5px;
     color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.param-value {
+    font-size: 13px;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    white-space: pre-wrap;
-    word-break: normal;
-    overflow-wrap: break-word;   /* 只在必要时折行，避免把数字从中间断开 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.model-summary b {
-    color: var(--text);
+.param-tile.warn {
+    border-color: var(--danger);
 }
 
-.model-summary .warn {
+.param-tile.warn .param-value {
     color: var(--danger);
+    white-space: normal;
 }
 
 /* ---------------- 温度控制台 ---------------- */

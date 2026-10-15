@@ -59,7 +59,7 @@ The page has three columns (narrow screens stack them into two columns / one col
 | Area | Content |
 | ---- | ---- |
 | **Top (connect row)** | Connect / Disconnect and status, plus the device details on the same row: model / serial / firmware / hardware, **internal temperature**, output state (wraps when narrow) |
-| **Left · NTC Model** | Three modelling methods (pick one; B-value and SH each have "enter parameters / fit points" sub-methods), parameter fields and calibration-point table, CSV import; a compact summary of the active model at the bottom |
+| **Left · NTC Model** | Three modelling methods (pick one; B-value and SH each have "enter parameters / fit points" sub-methods), parameter fields and calibration-point table, CSV import; **parameter cards** for the active model at the bottom |
 | **Left · Device Limit Window** | Enable limits, minimum/maximum resistance, write limits — see [Device Limit Window](#device-limit-window) |
 | **Middle · Temperature Console** | Simulated temperature (large), the four readouts below it (Target / SP / PV / TP), temperature input with Calculate/Apply, Auto apply, temperature stepping, resistance-to-temperature |
 | **Right · Curve** | Temperature-resistance curve, markers for the simulated point and the device's actual value, allowed-window band; hover readout, click or drag to pick a point, plus the "Log resistance axis" and "Auto apply" switches |
@@ -120,12 +120,20 @@ t_c,r_ohm
 100,984.5
 ```
 
-### Current Model Summary
+### Current Model Parameters
 
-The bottom of the left column always shows a summary of the active model: key parameters, the
-resistance at both ends of the temperature range, the fit residual (if any) and any warning. Numbers
-are shown with 4 significant digits so the magnitude is readable at a glance; the full values are in
-the input fields and the readouts.
+The bottom of the left column shows the active model as a grid of **parameter cards** — one value per
+card, so you can verify the model at a glance:
+
+| Card | Content |
+| ---- | ---- |
+| **R25** / **B** (or **A / B / C**) | The model parameters currently in effect |
+| Two cards named after the range ends, e.g. **-40 C** / **125 C** | The resistance at both ends of the temperature range (follows the range fields live) |
+| **Points** / **Residual** | Number of calibration points and the fit residual in the fitting sub-methods (mK level means a very good fit) |
+| **Check** | Shown full-width when the coefficients are not monotonic or the parameters are invalid |
+
+Numbers are shown with 4 significant digits so the magnitude is readable at a glance; the full values
+are in the input fields and the readouts.
 
 ## Temperature and Resistance
 
