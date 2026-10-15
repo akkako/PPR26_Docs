@@ -2,6 +2,9 @@
 /docs/site/
 /site/
 
+# 本地预览输出
+_preview
+
 # Python
 
 __pycache__/
@@ -16,3 +19,6 @@ dist/
 ref
 
 .*
+
+# `.*` 会把 .github 一起忽略掉：显式放行，否则往 .github/ 里加文件要 git add -f
+!.github/
