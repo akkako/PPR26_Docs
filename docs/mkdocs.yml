@@ -52,6 +52,10 @@ hooks:
   # 把矢量示例图内联进页面（内联 SVG 才能跟随页面深浅色主题），见 hooks/inline_svg.py
   - hooks/inline_svg.py
 
+# 文档站头部插入「返回工具中心」按钮（见 assets/portal-back.js，中英各带一份）
+extra_javascript:
+  - assets/portal-back.js
+
 extra:
   social:
     - icon: fontawesome/brands/github-square
